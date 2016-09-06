@@ -1,5 +1,8 @@
 # Intel® RealSense™ Cross Platform API
 
+## Note about this branch:
+This branch contains a long-term stable version of librealsense. It provides limited functionality compared to the mainline, however it was better tested over long period of time by a large community of people. Moving forward this branch will not be maintained by RealSense team except for critical bug fixes. 
+
 [ ![Release] [release-image] ] [releases]
 [ ![License] [license-image] ] [license]
 
