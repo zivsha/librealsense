@@ -6,7 +6,7 @@ This branch contains a long-term stable version of librealsense. It provides lim
 [ ![Release] [release-image] ] [releases]
 [ ![License] [license-image] ] [license]
 
-[release-image]: http://img.shields.io/badge/release-1.9.6-blue.svg?style=flat
+[release-image]: http://img.shields.io/badge/release-0.9.3-blue.svg?style=flat
 [releases]: https://github.com/IntelRealSense/librealsense/releases
 
 [license-image]: http://img.shields.io/badge/license-Apache--2-blue.svg?style=flat
