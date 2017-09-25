@@ -5,6 +5,12 @@
 #include "sensor.h"
 #include "error-handling.h"
 
+
+void option::create_snapshot(std::shared_ptr<option>& snapshot) const
+{
+    snapshot = std::make_shared<const_value_option>(get_description(), query());
+}
+
 void librealsense::uvc_pu_option::set(float value)
 {
     _ep.invoke_powered(
@@ -12,6 +18,7 @@ void librealsense::uvc_pu_option::set(float value)
         {
             if (!dev.set_pu(_id, static_cast<int32_t>(value)))
                 throw invalid_value_exception(to_string() << "set_pu(id=" << std::to_string(_id) << ") failed!" << " Last Error: " << strerror(errno));
+            _record(*this);
         });
 }
 
@@ -118,6 +125,7 @@ void librealsense::polling_errors_disable::set(float value)
         _polling_error_handler->start();
         _value = 1;
     }
+    _recording_function(*this);
 }
 
 float librealsense::polling_errors_disable::query() const
@@ -127,7 +135,7 @@ float librealsense::polling_errors_disable::query() const
 
 librealsense::option_range librealsense::polling_errors_disable::get_range() const
 {
-    return option_range{0, 1, 1, 1};
+    return option_range{0, 1, 1, 0};
 }
 
 bool librealsense::polling_errors_disable::is_enabled() const
