@@ -17,6 +17,7 @@
 #include "ds5-options.h"
 #include "ds5-timestamp.h"
 #include "stream.h"
+#include "environment.h"
 
 namespace librealsense
 {
@@ -95,7 +96,8 @@ namespace librealsense
         }
         stream_profiles init_stream_profiles() override
         {
-            context::extrinsics_lock lock(_owner->_depth_stream->get_context());
+            auto lock = environment::get_instance().get_extrinsics_graph().lock();
+
             auto results = uvc_sensor::init_stream_profiles();
 
             for (auto p : results)
@@ -188,9 +190,9 @@ namespace librealsense
     ds5_device::ds5_device(std::shared_ptr<context> ctx,
                            const platform::backend_device_group& group)
         : device(ctx, group),
-          _depth_stream(new stream(ctx, RS2_STREAM_DEPTH)),
-          _left_ir_stream(new stream(ctx, RS2_STREAM_INFRARED, 1)),
-          _right_ir_stream(new stream(ctx, RS2_STREAM_INFRARED, 2)),
+          _depth_stream(new stream(RS2_STREAM_DEPTH)),
+          _left_ir_stream(new stream(RS2_STREAM_INFRARED, 1)),
+          _right_ir_stream(new stream(RS2_STREAM_INFRARED, 2)),
           _depth_device_idx(add_sensor(create_depth_device(ctx, group.uvc_devices)))
     {
         using namespace ds;
@@ -221,8 +223,8 @@ namespace librealsense
             return ext;
         });
 
-        ctx->register_same_extrinsics(*_depth_stream, *_left_ir_stream);
-        ctx->register_extrinsics(*_depth_stream, *_right_ir_stream, _left_right_extrinsics);
+        environment::get_instance().get_extrinsics_graph().register_same_extrinsics(*_depth_stream, *_left_ir_stream);
+        environment::get_instance().get_extrinsics_graph().register_extrinsics(*_depth_stream, *_right_ir_stream, _left_right_extrinsics);
         
         register_stream_to_extrinsic_group(*_depth_stream, 0);
         register_stream_to_extrinsic_group(*_left_ir_stream, 0);
@@ -301,7 +303,7 @@ namespace librealsense
 
                      std::unique_ptr<notification_decoder>(new ds5_notification_decoder())));
 
-             _polling_error_handler->start();
+             //_polling_error_handler->start();
 
              depth_ep.register_option(RS2_OPTION_ERROR_POLLING_ENABLED, std::make_shared<polling_errors_disable>(_polling_error_handler.get()));
 
@@ -348,16 +350,16 @@ namespace librealsense
         // md_configuration - will be used for internal validation only
         md_prop_offset = offsetof(metadata_raw, mode) + offsetof(md_depth_mode, depth_y_mode) + offsetof(md_depth_y_normal_mode, intel_configuration);
 
-        depth_ep.register_metadata((rs2_frame_metadata)RS2_FRAME_METADATA_HW_TYPE,          make_attribute_parser(&md_configuration::hw_type, md_configuration_attributes::hw_type_attribute, md_prop_offset));
-        depth_ep.register_metadata((rs2_frame_metadata)RS2_FRAME_METADATA_SKU_ID,           make_attribute_parser(&md_configuration::sku_id, md_configuration_attributes::sku_id_attribute, md_prop_offset));
-        depth_ep.register_metadata((rs2_frame_metadata)RS2_FRAME_METADATA_FORMAT,           make_attribute_parser(&md_configuration::format, md_configuration_attributes::format_attribute, md_prop_offset));
-        depth_ep.register_metadata((rs2_frame_metadata)RS2_FRAME_METADATA_WIDTH,            make_attribute_parser(&md_configuration::width, md_configuration_attributes::width_attribute, md_prop_offset));
-        depth_ep.register_metadata((rs2_frame_metadata)RS2_FRAME_METADATA_HEIGHT,           make_attribute_parser(&md_configuration::height, md_configuration_attributes::height_attribute, md_prop_offset));
+        depth_ep.register_metadata((rs2_frame_metadata_value)RS2_FRAME_METADATA_HW_TYPE,          make_attribute_parser(&md_configuration::hw_type, md_configuration_attributes::hw_type_attribute, md_prop_offset));
+        depth_ep.register_metadata((rs2_frame_metadata_value)RS2_FRAME_METADATA_SKU_ID,           make_attribute_parser(&md_configuration::sku_id, md_configuration_attributes::sku_id_attribute, md_prop_offset));
+        depth_ep.register_metadata((rs2_frame_metadata_value)RS2_FRAME_METADATA_FORMAT,           make_attribute_parser(&md_configuration::format, md_configuration_attributes::format_attribute, md_prop_offset));
+        depth_ep.register_metadata((rs2_frame_metadata_value)RS2_FRAME_METADATA_WIDTH,            make_attribute_parser(&md_configuration::width, md_configuration_attributes::width_attribute, md_prop_offset));
+        depth_ep.register_metadata((rs2_frame_metadata_value)RS2_FRAME_METADATA_HEIGHT,           make_attribute_parser(&md_configuration::height, md_configuration_attributes::height_attribute, md_prop_offset));
 
         register_info(RS2_CAMERA_INFO_NAME,              device_name);
         register_info(RS2_CAMERA_INFO_SERIAL_NUMBER,     serial);
         register_info(RS2_CAMERA_INFO_FIRMWARE_VERSION,  _fw_version);
-        register_info(RS2_CAMERA_INFO_LOCATION,          group.uvc_devices.front().device_path);
+        register_info(RS2_CAMERA_INFO_PHYSICAL_PORT,          group.uvc_devices.front().device_path);
         register_info(RS2_CAMERA_INFO_DEBUG_OP_CODE,     std::to_string(static_cast<int>(fw_cmd::GLD)));
         register_info(RS2_CAMERA_INFO_ADVANCED_MODE,            ((advanced_mode)?"YES":"NO"));
         register_info(RS2_CAMERA_INFO_PRODUCT_ID,               pid_hex_str);
@@ -389,22 +391,17 @@ namespace librealsense
 
     std::shared_ptr<matcher> ds5_device::create_matcher(const frame_holder& frame) const
     {
-        std::vector<std::shared_ptr<matcher>> matchers;
-
-        std::set<rs2_stream> streams = { RS2_STREAM_DEPTH, RS2_STREAM_INFRARED };
-        if (streams.find(frame.frame->get_stream()->get_stream_type()) != streams.end())
+        if(!frame.frame->supports_frame_metadata(RS2_FRAME_METADATA_FRAME_COUNTER))
         {
-            for (auto s : streams)
-                matchers.push_back(device::create_matcher(frame));
+            return device::create_matcher(frame);
         }
 
-        if (frame.frame->supports_frame_metadata(RS2_FRAME_METADATA_FRAME_COUNTER))
-        {
-            return std::make_shared<frame_number_composite_matcher>(matchers);
-        }
-        else
-        {
-            return std::make_shared<timestamp_composite_matcher>(matchers);
-        }
+        std::set<stream_interface*> streams = { _depth_stream.get() , _left_ir_stream.get() , _right_ir_stream.get()};
+        std::vector<std::shared_ptr<matcher>> depth_matchers;
+
+        for (auto& s : streams)
+            depth_matchers.push_back(std::make_shared<identity_matcher>( s->get_unique_id(), s->get_stream_type()));
+
+        return std::make_shared<frame_number_composite_matcher>(depth_matchers);
     }
 }

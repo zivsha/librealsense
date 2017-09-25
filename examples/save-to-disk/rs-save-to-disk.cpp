@@ -60,10 +60,12 @@ int main(int argc, char * argv[]) try
 catch(const rs2::error & e)
 {
     std::cerr << "RealSense error calling " << e.get_failed_function() << "(" << e.get_failed_args() << "):\n    " << e.what() << std::endl;
+    return EXIT_FAILURE;
 }
 catch(const std::exception & e)
 {
     std::cerr << e.what() << std::endl;
+    return EXIT_FAILURE;
 }
 
 void metadata_to_csv(const rs2::frame& frm, const std::string& filename)
@@ -78,10 +80,10 @@ void metadata_to_csv(const rs2::frame& frm, const std::string& filename)
     // Record all the available metadata attributes
     for (size_t i = 0; i < RS2_FRAME_METADATA_COUNT; i++)
     {
-        if (frm.supports_frame_metadata((rs2_frame_metadata)i))
+        if (frm.supports_frame_metadata((rs2_frame_metadata_value)i))
         {
-            csv << rs2_frame_metadata_to_string((rs2_frame_metadata)i) << ","
-                << frm.get_frame_metadata((rs2_frame_metadata)i) << "\n";
+            csv << rs2_frame_metadata_to_string((rs2_frame_metadata_value)i) << ","
+                << frm.get_frame_metadata((rs2_frame_metadata_value)i) << "\n";
         }
     }
 
