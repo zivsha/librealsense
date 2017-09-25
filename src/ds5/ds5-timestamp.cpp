@@ -52,9 +52,9 @@ namespace librealsense
            _has_metadata[pin_index] = has_metadata(mode, fo.metadata, fo.metadata_size);
         }
 
-        if(_has_metadata[pin_index])
+        auto md = (librealsense::metadata_intel_basic*)(fo.metadata);
+        if(_has_metadata[pin_index] && md)
         {
-            auto md = (librealsense::metadata_intel_basic*)(fo.metadata);
             return (double)(md->header.timestamp)*TIMESTAMP_USEC_TO_MSEC;
         }
         else

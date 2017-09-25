@@ -293,7 +293,7 @@ namespace rs2
                         ImGui::SetTooltip("%s", desc);
                     }
 
-                    ImGui::SameLine(); ImGui::SetCursorPosX(125);
+                    ImGui::SameLine(); ImGui::SetCursorPosX(135);
 
                     ImGui::PushItemWidth(-1);
 
@@ -1137,8 +1137,8 @@ namespace rs2
         // populate frame metadata attributes
         for (auto i=0; i< RS2_FRAME_METADATA_COUNT; i++)
         {
-            if (f.supports_frame_metadata((rs2_frame_metadata)i))
-                frame_md.md_attributes[i] = std::make_pair(true,f.get_frame_metadata((rs2_frame_metadata)i));
+            if (f.supports_frame_metadata((rs2_frame_metadata_value)i))
+                frame_md.md_attributes[i] = std::make_pair(true,f.get_frame_metadata((rs2_frame_metadata_value)i));
             else
                 frame_md.md_attributes[i].first = false;
         }
@@ -2084,7 +2084,7 @@ namespace rs2
         {
             if (frame_md.md_attributes[i].first)
             {
-                label = to_string() << rs2_frame_metadata_to_string((rs2_frame_metadata)i) << " = " << frame_md.md_attributes[i].second;
+                label = to_string() << rs2_frame_metadata_to_string((rs2_frame_metadata_value)i) << " = " << frame_md.md_attributes[i].second;
                 ImGui::Text("%s", label.c_str());
             }
         }
@@ -2492,7 +2492,51 @@ namespace rs2
         ImGui::PopFont();
     }
 
-    std::map<int, rect> viewer_model::calc_layout(float x0, float y0, float width, float height)
+    // Generate streams layout, creates a grid-like layout with factor amount of columns
+    std::map<int, rect> generate_layout(const rect& r,
+        int top_bar_height, int factor,
+        const std::set<stream_model*>& active_streams,
+        std::map<stream_model*, int>& stream_index
+    )
+    {
+        std::map<int, rect> results;
+        if (factor == 0) return results; 
+
+        // Calc the number of rows
+        auto complement = ceil((float)active_streams.size() / factor);
+
+        auto cell_width = static_cast<float>(r.w / factor);
+        auto cell_height = static_cast<float>(r.h / complement);
+
+        auto it = active_streams.begin();
+        for (auto x = 0; x < factor; x++)
+        {
+            for (auto y = 0; y < complement; y++)
+            {
+                // There might be spare boxes at the end (3 streams in 2x2 array for example)
+                if (it == active_streams.end()) break;
+
+                rect rxy = { r.x + x * cell_width, r.y + y * cell_height + top_bar_height,
+                    cell_width, cell_height - top_bar_height };
+                // Generate box to display the stream in
+                results[stream_index[*it]] = rxy.adjust_ratio((*it)->size);
+                ++it;
+            }
+        }
+
+        return results;
+    }
+
+    // Return the total display area of the layout
+    // The bigger it is, the more details we can see
+    float evaluate_layout(const std::map<int, rect>& l)
+    {
+        float res = 0.f;
+        for (auto&& kvp : l) res += kvp.second.area();
+        return res;
+    }
+
+    std::map<int, rect> viewer_model::calc_layout(const rect& r)
     {
         const int top_bar_height = 32;
 
@@ -2516,29 +2560,20 @@ namespace rs2
 
         if (fullscreen)
         {
-            results[stream_index[selected_stream]] = { static_cast<float>(x0), static_cast<float>(y0 + top_bar_height),
-                                                       static_cast<float>(width), static_cast<float>(height - top_bar_height) };
+            results[stream_index[selected_stream]] = { r.x, r.y + top_bar_height,
+                                                       r.w, r.h - top_bar_height };
         }
         else
         {
-            auto factor = ceil(sqrt(active_streams.size()));
-            auto complement = ceil(active_streams.size() / factor);
-
-            auto cell_width = static_cast<float>(width / factor);
-            auto cell_height = static_cast<float>(height / complement);
-
-            auto it = active_streams.begin();
-            for (auto x = 0; x < factor; x++)
+            // Go over all available fx(something) layouts
+            for (int f = 1; f <= active_streams.size(); f++)
             {
-                for (auto y = 0; y < complement; y++)
-                {
-                    if (it == active_streams.end()) break;
+                auto l = generate_layout(r, top_bar_height, f, 
+                                         active_streams, stream_index);
 
-                    rect r = { x0 + x * cell_width, y0 + y * cell_height + top_bar_height,
-                        cell_width, cell_height - top_bar_height };
-                    results[stream_index[*it]] = r;
-                    it++;
-                }
+                // Keep the "best" layout in result
+                if (evaluate_layout(l) > evaluate_layout(results))
+                    results = l;
             }
         }
 
@@ -3028,7 +3063,7 @@ namespace rs2
             // When camera is being reset, either because of "hardware reset"
             // or because of switch into advanced mode,
             // we don't want to capture the info that is about to change
-            if ((info == RS2_CAMERA_INFO_LOCATION ||
+            if ((info == RS2_CAMERA_INFO_PHYSICAL_PORT ||
                 info == RS2_CAMERA_INFO_ADVANCED_MODE)
                 && !include_location) continue;
 

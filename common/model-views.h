@@ -94,7 +94,7 @@ namespace rs2
 
     struct frame_metadata
     {
-        std::array<std::pair<bool,rs2_metadata_t>,RS2_FRAME_METADATA_COUNT> md_attributes{};
+        std::array<std::pair<bool,rs2_metadata_type>,RS2_FRAME_METADATA_COUNT> md_attributes{};
     };
 
     struct notification_model;
@@ -407,8 +407,8 @@ namespace rs2
     class async_pointclound_mapper
     {
     public:
-        async_pointclound_mapper(pointcloud pc)
-            : pc(pc), keep_calculating_pointcloud(true),
+        async_pointclound_mapper()
+            : keep_calculating_pointcloud(true),
               resulting_3d_models(1), depth_frames_to_render(1),
               t([this]() {render_loop(); })
         {
@@ -463,8 +463,7 @@ namespace rs2
     public:
         void reset_camera(float3 pos = { 0.0f, 0.0f, -1.5f });
 
-        viewer_model(context ctx)
-            : pc(ctx.create_pointcloud())
+        viewer_model()
         {
             reset_camera();
             rs2_error* e = nullptr;
@@ -474,7 +473,7 @@ namespace rs2
         void upload_frame(frame&& f);
         void draw_histogram_options(float depth_scale, const subdevice_model& sensor);
 
-        std::map<int, rect> calc_layout(float x0, float y0, float width, float height);
+        std::map<int, rect> calc_layout(const rect& r);
 
         void show_no_stream_overlay(ImFont* font, int min_x, int min_y, int max_x, int max_y);
         void show_no_device_overlay(ImFont* font, int min_x, int min_y);
