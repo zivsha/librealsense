@@ -55,8 +55,6 @@ namespace librealsense
         virtual bool is_default() const = 0;
         virtual void make_default() = 0;
 
-        virtual size_t get_size() const = 0;
-
         virtual std::shared_ptr<stream_profile_interface> clone() const = 0;
         virtual rs2_stream_profile* get_c_wrapper() const = 0;
         virtual void set_c_wrapper(rs2_stream_profile* wrapper) = 0;
@@ -140,11 +138,13 @@ namespace librealsense
 
         virtual std::pair<uint32_t, rs2_extrinsics> get_extrinsics(const stream_interface& stream) const = 0;
 
+        virtual bool is_valid() const = 0;
+
         virtual ~device_interface() = default;
 
     };
 
-    class depth_sensor
+    class depth_sensor : public recordable<depth_sensor>
     {
     public:
         virtual float get_depth_scale() const = 0;
@@ -164,12 +164,18 @@ namespace librealsense
 
         void update(std::shared_ptr<extension_snapshot> ext) override
         {
-            auto p = As<depth_sensor>(ext);
-            if (p == nullptr)
+            if (auto api = As<depth_sensor>(ext))
             {
-                return;
+                m_depth_units = api->get_depth_scale();
             }
-            m_depth_units = p->get_depth_scale();
+        }
+        void create_snapshot(std::shared_ptr<depth_sensor>& snapshot) const  override
+        {
+            snapshot = std::make_shared<depth_sensor_snapshot>(*this);
+        }
+        void enable_recording(std::function<void(const depth_sensor&)> recording_function) override
+        {
+            //empty
         }
     private:
         float m_depth_units;

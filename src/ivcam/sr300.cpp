@@ -7,9 +7,12 @@
 
 namespace librealsense
 {
-    std::shared_ptr<device_interface> sr300_info::create(std::shared_ptr<context> ctx) const
+    std::shared_ptr<device_interface> sr300_info::create(std::shared_ptr<context> ctx,
+                                                         bool register_device_notifications) const
     {
-        return std::make_shared<sr300_camera>(ctx, _color, _depth, _hwm, this->get_device_data());
+        return std::make_shared<sr300_camera>(ctx, _color, _depth, _hwm,
+                                              this->get_device_data(),
+                                              register_device_notifications);
     }
 
     std::vector<std::shared_ptr<device_info>> sr300_info::pick_sr300_devices(
@@ -179,19 +182,24 @@ namespace librealsense
     }
 
     sr300_camera::sr300_camera(std::shared_ptr<context> ctx, const platform::uvc_device_info &color,
-                               const platform::uvc_device_info &depth, const platform::usb_device_info &hwm_device, const platform::backend_device_group& group)
-            : device(ctx, group), _depth_device_idx(add_sensor(create_depth_device(ctx, depth))),
-              _color_device_idx(add_sensor(create_color_device(ctx, color))),
-              _hw_monitor(std::make_shared<hw_monitor>(std::make_shared<locked_transfer>(ctx->get_backend().create_usb_device(hwm_device), get_depth_sensor()))),
-              _depth_stream(new stream(RS2_STREAM_DEPTH)),
-              _ir_stream(new stream(RS2_STREAM_INFRARED)),
-              _color_stream(new stream(RS2_STREAM_COLOR))
+                               const platform::uvc_device_info &depth,
+                               const platform::usb_device_info &hwm_device,
+                               const platform::backend_device_group& group,
+                               bool register_device_notifications)
+        : device(ctx, group, register_device_notifications),
+          _depth_device_idx(add_sensor(create_depth_device(ctx, depth))),
+          _color_device_idx(add_sensor(create_color_device(ctx, color))),
+          _hw_monitor(std::make_shared<hw_monitor>(std::make_shared<locked_transfer>(ctx->get_backend().create_usb_device(hwm_device), get_depth_sensor()))),
+          _depth_stream(new stream(RS2_STREAM_DEPTH)),
+          _ir_stream(new stream(RS2_STREAM_INFRARED)),
+          _color_stream(new stream(RS2_STREAM_COLOR))
     {
         using namespace ivcam;
         static auto device_name = "Intel RealSense SR300";
 
         auto fw_version = _hw_monitor->get_firmware_version_string(GVD, fw_version_offset);
         auto serial = _hw_monitor->get_module_serial_string(GVD, module_serial_offset);
+        _camer_calib_params = [this]() { return get_calibration(); };
         enable_timestamp(true, true);
 
         auto pid_hex_str = hexify(color.pid>>8) + hexify(static_cast<uint8_t>(color.pid));
@@ -207,7 +215,7 @@ namespace librealsense
 
         _depth_to_color_extrinsics = std::make_shared<lazy<rs2_extrinsics>>([this]()
         {
-            auto c = get_calibration();
+            auto c = *_camer_calib_params;
             pose depth_to_color = {
                 transpose(reinterpret_cast<const float3x3 &>(c.Rt)),
                 reinterpret_cast<const float3 &>(c.Tt) * 0.001f
@@ -218,7 +226,7 @@ namespace librealsense
 
         environment::get_instance().get_extrinsics_graph().register_same_extrinsics(*_depth_stream, *_ir_stream);
         environment::get_instance().get_extrinsics_graph().register_extrinsics(*_depth_stream, *_color_stream, _depth_to_color_extrinsics);
-        
+
         register_stream_to_extrinsic_group(*_depth_stream, 0);
         register_stream_to_extrinsic_group(*_ir_stream, 0);
         register_stream_to_extrinsic_group(*_color_stream, 0);
@@ -226,21 +234,18 @@ namespace librealsense
         get_depth_sensor().register_option(RS2_OPTION_DEPTH_UNITS,
                                            std::make_shared<const_value_option>("Number of meters represented by a single depth unit",
                                             lazy<float>([this]() {
-                                                auto c = get_calibration();
+                                                auto c = *_camer_calib_params;
                                                 return (c.Rmax / 1000 / 0xFFFF);
                                             })));
 
     }
-    void sr300_camera::create_snapshot(std::shared_ptr<debug_interface>& snapshot)
+    void sr300_camera::create_snapshot(std::shared_ptr<debug_interface>& snapshot) const
     {
         //TODO: implement
-        throw std::runtime_error("Not Implemented");
     }
-    void sr300_camera::create_recordable(std::shared_ptr<debug_interface>& recordable,
-        std::function<void(std::shared_ptr<extension_snapshot>)> record_action)
+    void sr300_camera::enable_recording(std::function<void(const debug_interface&)> record_action)
     {
         //TODO: implement
-        throw std::runtime_error("Not Implemented");
     }
 
 

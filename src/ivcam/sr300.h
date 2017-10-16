@@ -129,7 +129,8 @@ namespace librealsense
     class sr300_info : public device_info
     {
     public:
-        std::shared_ptr<device_interface> create(std::shared_ptr<context> ctx) const override;
+        std::shared_ptr<device_interface> create(std::shared_ptr<context> ctx,
+                                                 bool register_device_notifications) const override;
 
         sr300_info(std::shared_ptr<context> ctx,
                     platform::uvc_device_info color,
@@ -154,7 +155,7 @@ namespace librealsense
         platform::usb_device_info _hwm;
     };
 
-    class sr300_camera final : public device, public debug_interface
+    class sr300_camera final : public virtual device, public debug_interface
     {
     public:
         class preset_option : public option_base
@@ -167,6 +168,7 @@ namespace librealsense
 
                 _owner.rs2_apply_ivcam_preset(static_cast<int>(value));
                 last_value = value;
+                _recording_function(*this);
             }
 
             float query() const override { return last_value; }
@@ -206,7 +208,7 @@ namespace librealsense
 
             rs2_intrinsics get_intrinsics(const stream_profile& profile) const override
             {
-                return make_color_intrinsics(_owner->get_calibration(), { int(profile.width), int(profile.height) });
+                return make_color_intrinsics(*_owner->_camer_calib_params, { int(profile.width), int(profile.height) });
             }
 
             stream_profiles init_stream_profiles() override
@@ -231,9 +233,15 @@ namespace librealsense
                         video->make_default();
 
                     auto profile = to_profile(p.get());
-                    video->set_intrinsics([profile, this]()
+                    std::weak_ptr<sr300_color_sensor> wp =
+                        std::dynamic_pointer_cast<sr300_color_sensor>(this->shared_from_this());
+                    video->set_intrinsics([profile, wp]()
                     {
-                        return get_intrinsics(profile);
+                        auto sp = wp.lock();
+                        if (sp)
+                            return sp->get_intrinsics(profile);
+                        else
+                            return rs2_intrinsics{};
                     });
                 }
 
@@ -254,7 +262,7 @@ namespace librealsense
 
             rs2_intrinsics get_intrinsics(const stream_profile& profile) const override
             {
-                return make_depth_intrinsics(_owner->get_calibration(), { int(profile.width), int(profile.height) });
+                return make_depth_intrinsics(*_owner->_camer_calib_params, { int(profile.width), int(profile.height) });
             }
 
             stream_profiles init_stream_profiles() override
@@ -283,9 +291,16 @@ namespace librealsense
                         video->make_default();
 
                     auto profile = to_profile(p.get());
-                    video->set_intrinsics([profile, this]()
+                    std::weak_ptr<sr300_depth_sensor> wp =
+                        std::dynamic_pointer_cast<sr300_depth_sensor>(this->shared_from_this());
+
+                    video->set_intrinsics([profile, wp]()
                     {
-                        return get_intrinsics(profile);
+                        auto sp = wp.lock();
+                        if (sp)
+                            return sp->get_intrinsics(profile);
+                        else
+                            return rs2_intrinsics{};
                     });
                 }
 
@@ -293,6 +308,17 @@ namespace librealsense
             }
 
             float get_depth_scale() const override { return get_option(RS2_OPTION_DEPTH_UNITS).query(); }
+
+            void create_snapshot(std::shared_ptr<depth_sensor>& snapshot) const  override
+            {
+                snapshot = std::make_shared<depth_sensor_snapshot>(get_depth_scale());
+            }
+            void enable_recording(std::function<void(const depth_sensor&)> recording_function) override
+            {
+                get_option(RS2_OPTION_DEPTH_UNITS).enable_recording([this, recording_function](const option& o) {
+                    recording_function(*this);
+                });
+            }
         private:
             const sr300_camera* _owner;
         };
@@ -402,10 +428,11 @@ namespace librealsense
 
 
         sr300_camera(std::shared_ptr<context> ctx,
-            const platform::uvc_device_info& color,
-            const platform::uvc_device_info& depth,
-            const platform::usb_device_info& hwm_device,
-            const platform::backend_device_group& group);
+                     const platform::uvc_device_info& color,
+                     const platform::uvc_device_info& depth,
+                     const platform::usb_device_info& hwm_device,
+                     const platform::backend_device_group& group,
+                     bool register_device_notifications);
 
         void rs2_apply_ivcam_preset(int preset)
         {
@@ -473,9 +500,9 @@ namespace librealsense
                     //set_auto_range(ar_requests[preset]);
             }
         }
-        void create_snapshot(std::shared_ptr<debug_interface>& snapshot) override;
-        void create_recordable(std::shared_ptr<debug_interface>& recordable,
-                               std::function<void(std::shared_ptr<extension_snapshot>)> record_action) override;
+        void create_snapshot(std::shared_ptr<debug_interface>& snapshot) const override;
+        void enable_recording(std::function<void(const debug_interface&)> record_action) override;
+
 
         virtual std::shared_ptr<matcher> create_matcher(const frame_holder& frame) const override;
     private:
@@ -524,5 +551,7 @@ namespace librealsense
         std::shared_ptr<stream_interface> _ir_stream;
         std::shared_ptr<stream_interface> _color_stream;
         std::shared_ptr<lazy<rs2_extrinsics>> _depth_to_color_extrinsics;
+
+        lazy<ivcam::camera_calib_params> _camer_calib_params;
     };
 }

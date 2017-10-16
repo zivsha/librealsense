@@ -120,11 +120,16 @@ namespace librealsense
                 if (video->get_width() == 640 && video->get_height() == 480 && video->get_format() == RS2_FORMAT_RAW8 && video->get_framerate() == 30)
                     video->make_default();
 
-                // Register intrinsics
                 auto profile = to_profile(p.get());
-                video->set_intrinsics([profile, this]()
+                std::weak_ptr<ds5_fisheye_sensor> wp =
+                    std::dynamic_pointer_cast<ds5_fisheye_sensor>(this->shared_from_this());
+                video->set_intrinsics([profile, wp]()
                 {
-                    return get_intrinsics(profile);
+                    auto sp = wp.lock();
+                    if (sp)
+                        return sp->get_intrinsics(profile);
+                    else
+                        return rs2_intrinsics{};
                 });
             }
 
@@ -216,7 +221,7 @@ namespace librealsense
         auto gain_option =  std::make_shared<uvc_pu_option>(*uvc_ep, RS2_OPTION_GAIN);
 
         auto exposure_option =  std::make_shared<uvc_xu_option<uint16_t>>(*uvc_ep,
-                *fisheye_xu,
+                *fisheye_xu,                          
                 librealsense::ds::FISHEYE_EXPOSURE, "Exposure time of Fisheye camera");
 
         auto ae_state = std::make_shared<auto_exposure_state>();

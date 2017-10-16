@@ -18,7 +18,9 @@ endif()
 
 if(BUILD_GRAPHICAL_EXAMPLES)
 
-if(UNIX)
+if(APPLE)
+    add_definitions(-DNOC_FILE_DIALOG_OSX)
+elseif(UNIX)
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
 
@@ -29,8 +31,6 @@ if(UNIX)
     add_definitions(-DNOC_FILE_DIALOG_GTK)
 elseif(WIN32)
     add_definitions(-DNOC_FILE_DIALOG_WIN32)
-elseif(APPLE)
-    add_definitions(-DNOC_FILE_DIALOG_OSX)
 endif()
 
     set(RS_VIEWER_CPP
@@ -43,13 +43,23 @@ endif()
             ../../common/rendering.h
             ../../common/model-views.h
             ../../common/model-views.cpp
+            ../../common/ux-window.h
+            ../../common/ux-window.cpp
         )
 
     # config-ui
     if(WIN32)
         add_executable(realsense-viewer WIN32
                 ${RS_VIEWER_CPP} ${CMAKE_CURRENT_SOURCE_DIR}/res/resource.h
-                ${RS_VIEWER_CPP} ${CMAKE_CURRENT_SOURCE_DIR}/res/realsense-viewer.rc)
+                ${RS_VIEWER_CPP} ${CMAKE_CURRENT_SOURCE_DIR}/res/realsense-viewer.rc
+                ../../common/windows-app-bootstrap.cpp)
+
+        source_group("3rd Party" FILES
+            ../../third-party/imgui/imgui.cpp
+            ../../third-party/imgui/imgui_draw.cpp
+            ../../third-party/imgui/imgui_impl_glfw.cpp
+            ../../third-party/imgui/imgui-fonts-karla.hpp
+            ../../third-party/imgui/imgui-fonts-fontawesome.hpp)
 
         source_group("Resources" FILES
                 ${CMAKE_CURRENT_SOURCE_DIR}/res/resource.h

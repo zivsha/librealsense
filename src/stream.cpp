@@ -89,15 +89,11 @@ namespace librealsense
         _is_default = true;
     }
 
-    size_t stream_profile_base::get_size() const
-    {
-        return get_image_bpp(get_format()) * get_framerate();
-    }
-
     std::shared_ptr<stream_profile_interface> stream_profile_base::clone() const
     {
         auto res = std::make_shared<stream_profile_base>(get_backend_profile());
         res->set_unique_id(environment::get_instance().generate_stream_id());
+        res->set_framerate(get_framerate());
         return res;
     }
 
@@ -109,6 +105,16 @@ namespace librealsense
     void stream_profile_base::set_c_wrapper(rs2_stream_profile* wrapper)
     {
         _c_ptr = wrapper;
+    }
+    void stream_profile_base::create_snapshot(std::shared_ptr<stream_profile_interface>& snapshot) const
+    {
+        auto ptr = std::const_pointer_cast<stream_interface>(shared_from_this());
+        snapshot = std::dynamic_pointer_cast<stream_profile_interface>(ptr);
+    }
+    void stream_profile_base::enable_recording(std::function<void(const stream_profile_interface&)> record_action)
+    {
+        //TODO: implement or remove inheritance from recordable<T>
+        throw not_implemented_exception(__FUNCTION__);
     }
 }
 

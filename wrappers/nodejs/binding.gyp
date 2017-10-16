@@ -1,6 +1,10 @@
 {
   'variables': {
     'build_arch': '<!(node -p "process.arch")',
+    'variables': {
+      'vs_configuration%': "Debug",
+    },
+    'win_realsense_dir': '<(module_root_dir)/../../build/<(vs_configuration)',
   },
   "targets": [
     {
@@ -45,7 +49,7 @@
               }
             },
             "libraries": [
-              "<(module_root_dir)/../../build/Debug/realsense2.lib",
+              "<(win_realsense_dir)/realsense2.lib",
             ],
           }
         ],
@@ -53,10 +57,15 @@
           "OS!=\"win\"",
           {
             "libraries": [
-              "<(module_root_dir)/../../build/librealsense2.so",
+              "-lrealsense2"
             ],
             'ldflags': [
+              # rpath for build from source
               '-Wl,-rpath,\$$ORIGIN/../../../../build',
+              '-L<(module_root_dir)/../../build',
+              # rpatch for build debian package
+              '-Wl,-rpath,\$$ORIGIN/../../../../obj-x86_64-linux-gnu',
+              '-L<(module_root_dir)/../../obj-x86_64-linux-gnu'
             ],
             "cflags+": [
               "-std=c++11"
@@ -81,7 +90,7 @@
             [
               {
                 'destination': '<(module_root_dir)/build/Release',
-                'files': ['<(module_root_dir)/../../build/Debug/realsense2.dll']
+                'files': ['<(win_realsense_dir)/realsense2.dll']
               }
             ]
         }]

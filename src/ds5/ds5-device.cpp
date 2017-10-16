@@ -129,9 +129,15 @@ namespace librealsense
                 if (p->get_format() != RS2_FORMAT_Y16) // Y16 format indicate unrectified images, no intrinsics are available for these
                 {
                     auto profile = to_profile(p.get());
-                    video->set_intrinsics([profile, this]()
+                    std::weak_ptr<ds5_depth_sensor> wp =
+                        std::dynamic_pointer_cast<ds5_depth_sensor>(this->shared_from_this());
+                    video->set_intrinsics([profile, wp]()
                     {
-                        return get_intrinsics(profile);
+                        auto sp = wp.lock();
+                        if (sp)
+                            return sp->get_intrinsics(profile);
+                        else
+                            return rs2_intrinsics{};
                     });
                 }
             }
@@ -140,6 +146,15 @@ namespace librealsense
         }
 
         float get_depth_scale() const override { return _depth_units; }
+
+        void create_snapshot(std::shared_ptr<depth_sensor>& snapshot) const  override
+        {
+            snapshot = std::make_shared<depth_sensor_snapshot>(get_depth_scale());
+        }
+        void enable_recording(std::function<void(const depth_sensor&)> recording_function) override
+        {
+            //does not change over time
+        }
     private:
         const ds5_device* _owner;
         float _depth_units;
@@ -225,7 +240,7 @@ namespace librealsense
 
         environment::get_instance().get_extrinsics_graph().register_same_extrinsics(*_depth_stream, *_left_ir_stream);
         environment::get_instance().get_extrinsics_graph().register_extrinsics(*_depth_stream, *_right_ir_stream, _left_right_extrinsics);
-        
+
         register_stream_to_extrinsic_group(*_depth_stream, 0);
         register_stream_to_extrinsic_group(*_left_ir_stream, 0);
         register_stream_to_extrinsic_group(*_right_ir_stream, 0);
@@ -301,9 +316,8 @@ namespace librealsense
                      std::move(error_control),
                      depth_ep.get_notifications_proccessor(),
 
-                     std::unique_ptr<notification_decoder>(new ds5_notification_decoder())));
+            std::unique_ptr<notification_decoder>(new ds5_notification_decoder())));
 
-             //_polling_error_handler->start();
 
              depth_ep.register_option(RS2_OPTION_ERROR_POLLING_ENABLED, std::make_shared<polling_errors_disable>(_polling_error_handler.get()));
 
@@ -379,14 +393,13 @@ namespace librealsense
         return{ RS2_NOTIFICATION_CATEGORY_HARDWARE_ERROR, value, RS2_LOG_SEVERITY_WARN, "Unknown error!" };
     }
 
-    void ds5_device::create_snapshot(std::shared_ptr<debug_interface>& snapshot)
+    void ds5_device::create_snapshot(std::shared_ptr<debug_interface>& snapshot) const
     {
-
+        //TODO: Implement
     }
-    void ds5_device::create_recordable(std::shared_ptr<debug_interface>& recordable,
-                                       std::function<void(std::shared_ptr<extension_snapshot>)> record_action)
+    void ds5_device::enable_recording(std::function<void(const debug_interface&)> record_action)
     {
-
+        //TODO: Implement
     }
 
     std::shared_ptr<matcher> ds5_device::create_matcher(const frame_holder& frame) const

@@ -39,9 +39,9 @@ template<class T, class S>
 inline void slider_float(const char* id, T* val, S T::* field, bool& to_set)
 {
     ImGui::Text("%s", id);
-    float temp = val->*field;
-    float min = (val + 1)->*field;
-    float max = (val + 2)->*field;
+    float temp = float(val->*field);
+    float min = float((val + 1)->*field);
+    float max = float((val + 2)->*field);
 
     std::string slider_id = rs2::to_string() << "##" << id;
 
@@ -95,7 +95,11 @@ inline void draw_advanced_mode_controls(rs400::advanced_mode& advanced, advanced
             amc.census.vals[k] = advanced.get_census(k);
         }
         amc.hdad.vals[0] = advanced.get_hdad();
+        amc.hdad.vals[1] = amc.hdad.vals[0]; //setting min/max to the same value
+        amc.hdad.vals[2] = amc.hdad.vals[0]; //setting min/max to the same value
         amc.ae.vals[0] = advanced.get_ae_control();
+        amc.ae.vals[1] = amc.ae.vals[0]; //setting min/max to the same value
+        amc.ae.vals[2] = amc.ae.vals[0]; //setting min/max to the same value
         get_curr_advanced_controls = false;
     }
 
@@ -306,7 +310,7 @@ inline void draw_advanced_mode_controls(rs400::advanced_mode& advanced, advanced
         ImGui::PopItemWidth();
 
         if (to_set)
-            advanced.set_depth_control(amc.depth_controls.vals[0]);
+            advanced.set_depth_table(amc.depth_table.vals[0]);
 
         ImGui::TreePop();
     }

@@ -15,13 +15,13 @@ namespace librealsense
     class device_hub
     {
     public:
-        explicit device_hub(std::shared_ptr<librealsense::context> ctx, int vid = 0);
+        explicit device_hub(std::shared_ptr<librealsense::context> ctx, int vid = 0, bool register_device_notifications = true);
 
         /**
          * If any device is connected return it, otherwise wait until next RealSense device connects.
          * Calling this method multiple times will cycle through connected devices
          */
-        std::shared_ptr<device_interface> wait_for_device( unsigned int timeout_ms = std::numeric_limits<uint64_t>::max(), std::string serial = "");
+        std::shared_ptr<device_interface> wait_for_device( unsigned int timeout_ms = std::numeric_limits<unsigned int>::max(), std::string serial = "");
 
         /**
         * Checks if device is still connected
@@ -41,6 +41,7 @@ namespace librealsense
         std::vector<std::shared_ptr<device_info>> _device_list;
         int _camera_index = 0;
         int _vid = 0;
+        bool _register_device_notifications;
     };
 }
 

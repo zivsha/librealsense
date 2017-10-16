@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 // Copyright (c) 2017 Intel Corporation. All rights reserved.
 // Use of this source code is governed by an Apache 2.0 license
 // that can be found in the LICENSE file.
@@ -10,8 +12,7 @@ const GLFWWindow = glfwModule.GLFWWindow;
 const Rect = glfwModule.Rect;
 const Texture = glfwModule.Texture;
 
-function tryGetDepthScale(pipeline) {
-  const dev = pipeline.getDevice();
+function tryGetDepthScale(dev) {
   const sensors = dev.querySensors();
   for (let i = 0; i < sensors.length; i++) {
     if (sensors[i] instanceof rs2.DepthSensor) {
@@ -51,9 +52,9 @@ const colorizer = new rs2.Colorizer();
 const renderer = new Texture();
 const align = new rs2.Align(rs2.stream.STREAM_COLOR);
 const pipe = new rs2.Pipeline();
-pipe.start(align);
+const profile = pipe.start();
 
-const depthScale = tryGetDepthScale(pipe);
+const depthScale = tryGetDepthScale(profile.getDevice());
 if (depthScale === undefined) {
   console.error('Device does not have a depth sensor');
   process.exit(1);
@@ -82,8 +83,14 @@ win.setKeyCallback((key, scancode, action, modes) => {
 });
 
 while (!win.shouldWindowClose()) {
-  const frameset = align.waitForFrames();
-  if (!frameset) continue;
+  const rawFrameSet = pipe.waitForFrames();
+  if (!rawFrameSet) continue;
+
+  const frameset = align.process(rawFrameSet);
+  if (!frameset) {
+    rawFrameSet.destroy();
+    continue;
+  }
 
   let colorFrame = frameset.colorFrame;
   let alignedDepthFrame = frameset.depthFrame;
@@ -92,7 +99,7 @@ while (!win.shouldWindowClose()) {
     if (alignedDepthFrame) alignedDepthFrame.destroy();
 
     if (colorFrame) colorFrame.destroy();
-
+    rawFrameSet.destroy();
     frameset.destroy();
     continue;
   }
@@ -127,6 +134,7 @@ while (!win.shouldWindowClose()) {
   alignedDepthFrame.destroy();
   colorFrame.destroy();
   colorizedDepth.destroy();
+  rawFrameSet.destroy();
   frameset.destroy();
 }
 

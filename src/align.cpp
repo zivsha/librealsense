@@ -237,8 +237,7 @@ namespace librealsense
           _depth_units_ptr(nullptr),
           _mapped_intrinsics_ptr(nullptr),
           _extrinsics_ptr(nullptr),
-          _mapped(nullptr),
-          _depth_stream_uid(0)
+          _mapped(nullptr)
     {
         auto on_frame = [this](rs2::frame f, const rs2::frame_source& source)
         {
@@ -247,10 +246,10 @@ namespace librealsense
                 auto depth_frame = (frame_interface*)depth.get();
                 std::lock_guard<std::mutex> lock(_mutex);
 
-                if (!_stream.get() || _depth_stream_uid != depth_frame->get_stream()->get_unique_id())
+                if (!_stream.get() || _depth_stream != depth_frame->get_stream().get())
                 {
                     _stream = depth_frame->get_stream()->clone();
-                    _depth_stream_uid = depth_frame->get_stream()->get_unique_id();
+                    _depth_stream = depth_frame->get_stream().get();
                     environment::get_instance().get_extrinsics_graph().register_same_extrinsics(*_stream, *depth_frame->get_stream());
                     _depth_intrinsics_ptr = nullptr;
                     _depth_units_ptr = nullptr;
@@ -346,9 +345,12 @@ namespace librealsense
 
                 if (map_texture)
                 {
-                    for (int y = 0; y < vid_frame.get_height(); ++y)
+                    auto height = vid_frame.get_height();
+                    auto width = vid_frame.get_width();
+
+                    for (int y = 0; y < height; ++y)
                     {
-                        for (int x = 0; x < vid_frame.get_width(); ++x)
+                        for (int x = 0; x < width; ++x)
                         {
                             if (points->z)
                             {
@@ -375,6 +377,7 @@ namespace librealsense
                 auto depth = composite.first_or_default(RS2_STREAM_DEPTH);
                 if (depth)
                 {
+                    auto id = depth.get_profile().unique_id();
                     inspect_depth_frame(depth);
                     process_depth_frame(depth);
                 }
@@ -387,6 +390,7 @@ namespace librealsense
             {
                 if (f.get_profile().stream_type() == RS2_STREAM_DEPTH)
                 {
+                    auto id = f.get_profile().unique_id();
                     inspect_depth_frame(f);
                     process_depth_frame(f);
                 }
@@ -602,7 +606,7 @@ namespace librealsense
                         [p_out_frame, p_depth_frame/*, p_out_other_frame, other_bytes_per_pixel*/](int z_pixel_index, int other_pixel_index)
                     {
                         p_out_frame[other_pixel_index] = p_out_frame[other_pixel_index] ?
-                                                            std::min( (int)(p_out_frame[other_pixel_index]), (int)(p_depth_frame[z_pixel_index]) ) 
+                                                            std::min( (int)(p_out_frame[other_pixel_index]), (int)(p_depth_frame[z_pixel_index]) )
                                                           : p_depth_frame[z_pixel_index];
                     });
                     frames[1] = std::move(out_frame);

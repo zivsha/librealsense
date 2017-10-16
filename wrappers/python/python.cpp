@@ -331,11 +331,25 @@ PYBIND11_PLUGIN(NAME) {
          .def("get_frame_number", &rs2::frame::get_frame_number, "Retrieve the frame number.")
          .def("get_data", [](const rs2::frame& self) ->  BufData
               {
-                  if (auto vf = self.as<rs2::video_frame>())
-                      return BufData(const_cast<void*>(vf.get_data()), 1, std::string("@B"), 2,
-                                             { static_cast<size_t>(vf.get_height()), static_cast<size_t>(vf.get_width()) },
-                                             { static_cast<size_t>(vf.get_stride_in_bytes()), 1 });
-                  else
+                  if (auto vf = self.as<rs2::video_frame>()) {
+                      std::map<size_t,std::string> bytes_per_pixel_to_format = {{1, std::string("@B")}, {2, std::string("@H")}, {3, std::string("@I")}, {4, std::string("@I")}};
+                      switch (vf.get_profile().format()) {
+                        case RS2_FORMAT_RGB8: case RS2_FORMAT_BGR8:
+                          return BufData(const_cast<void*>(vf.get_data()), 1, bytes_per_pixel_to_format[1], 3,
+                                         { static_cast<size_t>(vf.get_height()), static_cast<size_t>(vf.get_width()), 3 },
+                                         { static_cast<size_t>(vf.get_stride_in_bytes()), static_cast<size_t>(vf.get_bytes_per_pixel()), 1 });
+                          break;
+                        case RS2_FORMAT_RGBA8: case RS2_FORMAT_BGRA8:
+                          return BufData(const_cast<void*>(vf.get_data()), 1, bytes_per_pixel_to_format[1], 3,
+                                         { static_cast<size_t>(vf.get_height()), static_cast<size_t>(vf.get_width()), 4 },
+                                         { static_cast<size_t>(vf.get_stride_in_bytes()), static_cast<size_t>(vf.get_bytes_per_pixel()), 1 });
+                          break;
+                        default:
+                          return BufData(const_cast<void*>(vf.get_data()), static_cast<size_t>(vf.get_bytes_per_pixel()), bytes_per_pixel_to_format[vf.get_bytes_per_pixel()], 2,
+                                         { static_cast<size_t>(vf.get_height()), static_cast<size_t>(vf.get_width()) },
+                                         { static_cast<size_t>(vf.get_stride_in_bytes()), static_cast<size_t>(vf.get_bytes_per_pixel()) });
+                      }
+                  } else
                       return BufData(const_cast<void*>(self.get_data()), 1, std::string("@B"), 0); },
               "retrieve data from the frame handle.", py::keep_alive<0, 1>())
          .def("get_profile", &rs2::frame::get_profile)
@@ -501,7 +515,6 @@ PYBIND11_PLUGIN(NAME) {
                   .def(BIND_DOWNCAST(stream_profile, stream_profile))
                   .def(BIND_DOWNCAST(stream_profile, video_stream_profile))
                   .def("stream_name", &rs2::stream_profile::stream_name)
-                  .def("size", &rs2::stream_profile::size)
                   .def("__nonzero__", &rs2::stream_profile::operator bool)
                   .def("get_extrinsics_to", &rs2::stream_profile::get_extrinsics_to, "to"_a)
                   .def("__repr__", [](const rs2::stream_profile& self)
@@ -599,27 +612,57 @@ PYBIND11_PLUGIN(NAME) {
                 .def("__nonzero__", &rs2::depth_sensor::operator bool);
 
     /* rs2_pipeline.hpp */
+
+
     py::class_<rs2::pipeline> pipeline(m, "pipeline");
     pipeline.def(py::init<rs2::context>(), "ctx"_a = rs2::context())
-            .def("get_device", &rs2::pipeline::get_device)
-            .def("start", (void (rs2::pipeline::*)()const) &rs2::pipeline::start)
-            .def("stop", &rs2::pipeline::stop)
-            .def("enable_stream" , &rs2::pipeline::enable_stream, "stream"_a, "index"_a,
-                 "width"_a, "height"_a, "format"_a, "framerate"_a)
-            .def("disable_stream", &rs2::pipeline::disable_stream, "stream"_a)
-            .def("disable_all", &rs2::pipeline::disable_all)
-            .def("wait_for_frames", &rs2::pipeline::wait_for_frames, "timeout_ms"_a = 5000)
-            .def("poll_for_frames", &rs2::pipeline::poll_for_frames, "frameset*"_a)
-            .def("enable_device",  &rs2::pipeline::enable_device,  "std::string"_a)
-            .def("get_active_streams", (rs2::stream_profile (rs2::pipeline::*)(const rs2_stream, const int) const)
-                 &rs2::pipeline::get_active_streams, "stream"_a, "index"_a = 0)
-            .def("get_active_streams", (std::vector<rs2::stream_profile> (rs2::pipeline::*)() const)
-                 &rs2::pipeline::get_active_streams)
-            .def("open", &rs2::pipeline::open);
+    .def("start", (rs2::pipeline_profile (rs2::pipeline::*)(const rs2::config&)) &rs2::pipeline::start, "config")
+    .def("start", (rs2::pipeline_profile (rs2::pipeline::*)() ) &rs2::pipeline::start)
+    .def("stop", &rs2::pipeline::stop)
+    .def("wait_for_frames", &rs2::pipeline::wait_for_frames, "timeout_ms"_a = 5000)
+    .def("poll_for_frames", &rs2::pipeline::poll_for_frames, "frameset*"_a);
+
+    struct pipeline_wrapper //Workaround to allow python implicit conversion of pipeline to std::shared_ptr<rs2_pipeline>
+    {
+        std::shared_ptr<rs2_pipeline> _ptr;
+    };
+
+    py::class_<pipeline_wrapper>(m, "pipeline_wrapper")
+        .def("__init__", [](pipeline_wrapper &pw, rs2::pipeline p) { new (&pw) pipeline_wrapper{ p }; });
+
+    py::implicitly_convertible<rs2::pipeline, pipeline_wrapper>();
+
+    /* rs2_pipeline.hpp */
+    py::class_<rs2::pipeline_profile> pipeline_profile(m, "pipeline_profile");
+    pipeline_profile.def(py::init<>())
+            .def("get_streams", &rs2::pipeline_profile::get_streams)
+            .def("get_stream", &rs2::pipeline_profile::get_stream, "stream_type"_a, "stream_index"_a = -1)
+            .def("get_device", &rs2::pipeline_profile::get_device);
+
+
+    py::class_<rs2::config> config(m, "config");
+    config.def(py::init<>())
+            .def("enable_stream", (void (rs2::config::*)(rs2_stream, int, int, int, rs2_format, int)) &rs2::config::enable_stream, "stream_type"_a, "stream_index"_a, "width"_a, "height"_a, "format"_a = RS2_FORMAT_ANY, "framerate"_a = 0)
+            .def("enable_stream", (void (rs2::config::*)(rs2_stream, int)) &rs2::config::enable_stream, "stream_type"_a, "stream_index"_a = -1)
+            .def("enable_stream", (void (rs2::config::*)(rs2_stream, int, int, rs2_format, int)) &rs2::config::enable_stream, "stream_type"_a, "width"_a, "height"_a, "format"_a = RS2_FORMAT_ANY, "framerate"_a = 0)
+            .def("enable_stream", (void (rs2::config::*)(rs2_stream, rs2_format, int))&rs2::config::enable_stream, "stream_type"_a, "format"_a, "framerate"_a = 0)
+            .def("enable_stream", (void (rs2::config::*)(rs2_stream, int, rs2_format, int)) &rs2::config::enable_stream, "stream_type"_a, "stream_index"_a, "format"_a, "framerate"_a = 0)
+            .def("enable_all_streams", &rs2::config::enable_all_streams)
+            .def("enable_device", &rs2::config::enable_device, "serial"_a)
+            .def("enable_device_from_file", &rs2::config::enable_device_from_file, "file_name"_a)
+            .def("enable_record_to_file", &rs2::config::enable_record_to_file, "file_name"_a)
+            .def("disable_stream", &rs2::config::disable_stream, "stream"_a, "index"_a = -1)
+            .def("disable_all_streams", &rs2::config::disable_all_streams)
+            .def("resolve", [](rs2::config* c, pipeline_wrapper pw) -> rs2::pipeline_profile { return c->resolve(pw._ptr); })
+            .def("can_resolve", [](rs2::config* c, pipeline_wrapper pw) -> bool { return c->can_resolve(pw._ptr); });
+
 
     /* rs2.hpp */
     m.def("log_to_console", &rs2::log_to_console, "min_severity"_a);
     m.def("log_to_file", &rs2::log_to_file, "min_severity"_a, "file_path"_a);
 
     return m.ptr();
+
+
+
 }
