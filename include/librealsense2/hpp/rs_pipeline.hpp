@@ -276,7 +276,7 @@ namespace rs2
         * In the absence of any request, the rs2::config selects the first available device and the first color and depth
         * streams configuration.
         * The pipeline profile selection during \c start() follows the same method. Thus, the selected profile is the same, if no
-        * change occurs to the available devices occurs.
+        * change occurs to the available devices.
         * Resolving the pipeline configuration provides the application access to the pipeline selected device for advanced
         * control.
         * The returned configuration is not applied to the device, so the application doesn't own the device sensors. However,
@@ -421,6 +421,8 @@ namespace rs2
         /**
         * Wait until a new set of frames becomes available.
         * The frames set includes time-synchronized frames of each enabled stream in the pipeline.
+        * In case of different frame rates of the streams, the frames set include a matching frame of the slow stream,
+        * which may have been included in previous frames set.
         * The method blocks the calling thread, and fetches the latest unread frames set.
         * Device frames, which were produced while the function wasn't called, are dropped. To avoid frame drops, this method
         * should be called as fast as the device frame rate.
