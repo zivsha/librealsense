@@ -206,6 +206,7 @@ TEST_CASE("Sync sanity", "[live]") {
             std::cerr << "Failed to write to folder " << i << " : " << e.what() << std::endl;
         }
     }
+    REQUIRE(true);
     return;
     const double DELTA = 1000 / 30; //MS between frames
     rs2::context ctx;
