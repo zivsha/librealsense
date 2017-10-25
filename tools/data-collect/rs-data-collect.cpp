@@ -132,12 +132,12 @@ void save_data_to_file(std::array<list<frame_data>, NUM_OF_STREAMS> buffer, cons
 
     for (int stream_index = 0; stream_index < NUM_OF_STREAMS; stream_index++)
     {
-        unsigned int buffer_size = buffer[stream_index].size();
-        for (unsigned int i = 0; i < buffer_size; i++)
+        auto buffer_size = buffer[stream_index].size();
+        for (auto i = 0; i < buffer_size; i++)
         {
             ostringstream line;
             auto data = buffer[stream_index].front();
-            line << rs2_stream_to_string(data.stream_type) << "," << data.frame_number << "," << data.ts << "," << data.arrival_time << "\n";
+            line << rs2_stream_to_string(data.stream_type) << "," << data.frame_number << "," << std::fixed << std::setprecision(3) << data.ts << "," << data.arrival_time << "\n";
             buffer[stream_index].pop_front();
             csv << line.str();
         }
@@ -151,7 +151,7 @@ int main(int argc, char** argv) try
     log_to_file(RS2_LOG_SEVERITY_WARN);
 
     // Parse command line arguments
-    CmdLine cmd("librealsense cpp-data-collect example tool", ' ');
+    CmdLine cmd("librealsense rs-data-collect example tool", ' ');
     ValueArg<int>    timeout("t", "Timeout", "Max amount of time to receive frames (in seconds)", false, 10, "");
     ValueArg<int>    max_frames("m", "MaxFrames_Number", "Maximun number of frames data to receive", false, 100, "");
     ValueArg<string> filename("f", "FullFilePath", "the file which the data will be saved to", false, "", "");
@@ -180,7 +180,7 @@ int main(int argc, char** argv) try
         {
             configure_stream(config, config_file.getValue());
         }
-        
+
         rs2::pipeline_profile profile = pipe.start(config);
         auto dev = profile.get_device();
 
@@ -228,17 +228,22 @@ int main(int argc, char** argv) try
 
         while (!ready())
         {
-            auto f = pipe.wait_for_frames();
+            auto frameset = pipe.wait_for_frames();
             auto arrival_time = chrono::duration_cast<chrono::milliseconds>(chrono::high_resolution_clock::now() - start_time);
 
-            frame_data data;
-            data.frame_number = f.get_frame_number();
-            data.stream_type = f.get_profile().stream_type();
-            data.ts = f.get_timestamp();
-            data.domain = f.get_frame_timestamp_domain();
-            data.arrival_time = arrival_time.count();
-
-            buffer[(int)data.stream_type].push_back(data);
+            for (auto it = frameset.begin(); it != frameset.end(); ++it)
+            {
+                auto f = (*it);
+                frame_data data{f.get_frame_number(),
+                                f.get_timestamp(),
+                                arrival_time.count(),
+                                f.get_frame_timestamp_domain(),
+                                f.get_profile().stream_type()};
+                if (buffer[(int)data.stream_type].size() < max_frames_number)
+                {
+                    buffer[(int)data.stream_type].push_back(data);
+                }
+            }
 
             if (need_to_reset)
             {

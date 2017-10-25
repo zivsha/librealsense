@@ -141,12 +141,19 @@ void read_script_file(const string& full_file_path, vector<string>& hex_lines)
     throw runtime_error("Script file not found!");
 }
 
+device wait_for_device(const device_hub& hub)
+{
+    cout << "\nWaiting for RealSense device to connect...\n";
+    auto dev = hub.wait_for_device();
+    cout << "RealSense device has connected...\n";
+    return dev;
+}
 
 int main(int argc, char** argv)
 {
-    CmdLine cmd("librealsense cpp-terminal example tool", ' ', RS2_API_VERSION_STR);
+    CmdLine cmd("librealsense rs-terminal example tool", ' ', RS2_API_VERSION_STR);
     ValueArg<string> xml_arg("l", "load", "Full file path of commands XML file", false, "", "Load commands XML file");
-    ValueArg<int> device_id_arg("d", "deviceId", "Device ID could be obtain from cpp-enumerate-devices example", false, 0, "Select a device to work with");
+    ValueArg<int> device_id_arg("d", "deviceId", "Device ID could be obtain from rs-enumerate-devices example", false, 0, "Select a device to work with");
     ValueArg<string> hex_cmd_arg("s", "send", "Hexadecimal raw data", false, "", "Send hexadecimal raw data to device");
     ValueArg<string> hex_script_arg("r", "raw", "Full file path of hexadecimal raw data script", false, "", "Send raw data line by line from script file");
     ValueArg<string> commands_script_arg("c", "cmd", "Full file path of commands script", false, "", "Send commands line by line from script file");
@@ -190,7 +197,7 @@ int main(int argc, char** argv)
 
     while (true)
     {
-        auto dev = hub.wait_for_device();
+        auto dev = wait_for_device(hub);
         fflush(nullptr);
 
         if (hex_cmd_arg.isSet())
@@ -275,7 +282,7 @@ int main(int argc, char** argv)
 
                 if (line == "next")
                 {
-                    dev = hub.wait_for_device();
+                    dev = wait_for_device(hub);
                     continue;
                 }
                 if (line == "exit")
