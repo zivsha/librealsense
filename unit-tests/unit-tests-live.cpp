@@ -182,7 +182,31 @@ std::pair<std::vector<sensor>, std::vector<profile>> configure_all_supported_str
 }
 
 TEST_CASE("Sync sanity", "[live]") {
-
+    for (int i = 0; i < 5; i++)
+    {
+        special_folder s = (special_folder)i;
+        try
+        {
+            std::string folder;
+            folder = get_folder_path(s);
+            std::cout << "Got folder path: " << folder << std::endl;
+#ifdef _WIN32
+            std::string path_del = "\\";
+#else
+            std::string path_del = "/";
+#endif 
+            std::string filename = folder + path_del + "ziv" + std::to_string(i);
+            std::cout << "Trying to write to file: " << filename << std::endl;
+            std::ofstream file(filename);
+            file << "OK!";
+            std::cout << "Wrote to file: " << filename << std::endl;;
+        }
+        catch (std::exception const & e)
+        {
+            std::cerr << "Failed to write to folder " << i << " : " << e.what() << std::endl;
+        }
+    }
+    return;
     const double DELTA = 1000 / 30; //MS between frames
     rs2::context ctx;
     if (make_context(SECTION_FROM_TEST_NAME, &ctx))
