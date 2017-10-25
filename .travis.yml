@@ -88,4 +88,10 @@ script:
       mkdir build && cd build;
       cmake .. -DBUILD_EXAMPLES:BOOL=true -DBUILD_WITH_OPENMP=false -DHWM_OVER_XU=false;
       make -j $CPU_NUM;
+
+      sudo "PATH=$PATH" make install;
+
+      export LRS_LOG_LEVEL="DEBUG";
+
+      ./unit-tests/live-test -d yes "Sync sanity";
     fi
