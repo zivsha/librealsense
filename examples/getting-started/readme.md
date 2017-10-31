@@ -10,7 +10,7 @@ You can take this project as is, build and compile it in a seperate directory an
 
 The application should open console and print a single line indicating the distance of the center pixel from the camera.
 
-<p align="center"><img src="expected_output.png" alt="screenshot gif"/></p>
+<p align="center"><img src="expected_output.PNG" alt="expected_output image"/></p>
 
 ## How to start?
 
@@ -21,3 +21,4 @@ The application should open console and print a single line indicating the dista
    - `cd build`
    - `cmake ../`
    - `make -j4`
+   - `./rs-getting-started`
