@@ -22,8 +22,8 @@ find_library(REALSENSE2_FOUND realsense2)
 message(STATUS "REALSENSE2_FOUND = ${REALSENSE2_FOUND}")
 
 # getting-started
-add_executable(rs-getting-started rs-getting-started.cpp ../example.hpp)
-include_directories(rs-getting-started ../)
+add_executable(rs-getting-started rs-getting-started.cpp)
+include_directories(rs-getting-started)
 target_link_libraries(rs-getting-started realsense2)
 set_target_properties (rs-getting-started PROPERTIES
     FOLDER Examples
