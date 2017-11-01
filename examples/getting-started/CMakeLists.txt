@@ -32,7 +32,10 @@ endif()
 
 
 find_library(REALSENSE2_FOUND realsense2 HINTS ${LIBRARY_DIR} REQUIRED)
-
+if(NOT REALSENSE2_FOUND)
+    SET(REALSENSE2_FOUND "realsense2")
+    message(WARN "Failed to find_library(realsense2)")
+endif()
 # getting-started
 add_executable(rs-getting-started rs-getting-started.cpp)
 include_directories(rs-getting-started ${ADDITIONAL_INCLUDE_DIRS})
