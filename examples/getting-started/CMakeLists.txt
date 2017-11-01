@@ -18,12 +18,22 @@ elseif(COMPILER_SUPPORTS_CXX0X)
 endif()
 
 # simple non robust way to find the librealsense library
-find_library(REALSENSE2_FOUND realsense2)
+if(WIN32)
+    if("${CMAKE_SIZEOF_VOID_P}" STREQUAL "8")
+        set(LIBRARY_DIR "C:\\Program Files (x86)\\Intel RealSense SDK 2.0\\lib\\x64")
+    else()
+        set(LIBRARY_DIR "C:\\Program Files (x86)\\Intel RealSense SDK 2.0\\lib\\x86")
+    endif()
+    set(ADDITIONAL_INCLUDE_DIRS "C:\\Program Files (x86)\\Intel RealSense SDK 2.0\\include")
+    message("LIBRARY_DIR = ${LIBRARY_DIR}")
+    message("ADDITIONAL_INCLUDE_DIRS = ${ADDITIONAL_INCLUDE_DIRS}")
+endif()
+find_library(REALSENSE2_FOUND realsense2 HINTS ${LIBRARY_DIR})
 message(STATUS "REALSENSE2_FOUND = ${REALSENSE2_FOUND}")
 
 # getting-started
 add_executable(rs-getting-started rs-getting-started.cpp)
-include_directories(rs-getting-started)
+include_directories(rs-getting-started ${ADDITIONAL_INCLUDE_DIRS})
 target_link_libraries(rs-getting-started realsense2)
 set_target_properties (rs-getting-started PROPERTIES
     FOLDER Examples
