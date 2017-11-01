@@ -17,27 +17,37 @@ elseif(COMPILER_SUPPORTS_CXX0X)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
 endif()
 
-# simple non robust way to find the librealsense library
+# Simple non robust way to find the librealsense library
 if(WIN32)
     if("${CMAKE_SIZEOF_VOID_P}" STREQUAL "8")
-        set(LIBRARY_DIR "C:\\Program Files (x86)\\Intel RealSense SDK 2.0\\lib\\x64")
+        set(LIBRARY_DIR "C:\\Program Files (x86)\\Intel RealSense SDK 2.0\\lib\\x64")          # TODO: Update this variable to correct path - folder where realsense2.lib is found
+        set(DLL_DIR "C:\\Program Files (x86)\\Intel RealSense SDK 2.0\\bin\\x64")              # TODO: Update this variable to correct path - folder where realsense2.dll is found
     else()
-        set(LIBRARY_DIR "C:\\Program Files (x86)\\Intel RealSense SDK 2.0\\lib\\x86")
+        set(LIBRARY_DIR "C:\\Program Files (x86)\\Intel RealSense SDK 2.0\\lib\\x86")          # TODO: Update this variable to correct path - folder where realsense2.lib is found
+        set(DLL_DIR "C:\\Program Files (x86)\\Intel RealSense SDK 2.0\\bin\\x86")              # TODO: Update this variable to correct path - folder where realsense2.dll is found
     endif()
-    set(ADDITIONAL_INCLUDE_DIRS "C:\\Program Files (x86)\\Intel RealSense SDK 2.0\\include")
-    message("LIBRARY_DIR = ${LIBRARY_DIR}")
-    message("ADDITIONAL_INCLUDE_DIRS = ${ADDITIONAL_INCLUDE_DIRS}")
+    set(PROJECT_BINARY_OUTPUT_PATH "${PROJECT_BINARY_DIR}/\$\(Configuration\)")                # TODO: Update this variable to correct path - folder to which your project will compile
+    set(ADDITIONAL_INCLUDE_DIRS "C:\\Program Files (x86)\\Intel RealSense SDK 2.0\\include")   # TODO: Update this variable to correct path - folder where librealsense2 folder is found
 endif()
-find_library(REALSENSE2_FOUND realsense2 HINTS ${LIBRARY_DIR})
-message(STATUS "REALSENSE2_FOUND = ${REALSENSE2_FOUND}")
+
+
+find_library(REALSENSE2_FOUND realsense2 HINTS ${LIBRARY_DIR} REQUIRED)
 
 # getting-started
 add_executable(rs-getting-started rs-getting-started.cpp)
 include_directories(rs-getting-started ${ADDITIONAL_INCLUDE_DIRS})
-target_link_libraries(rs-getting-started realsense2)
-set_target_properties (rs-getting-started PROPERTIES
-    FOLDER Examples
-)
+target_link_libraries(rs-getting-started ${REALSENSE2_FOUND})
+set_target_properties (rs-getting-started PROPERTIES FOLDER Examples)
+
+# Post Build script to copy realsense2.dll
+if(WIN32)
+message(STATUS "Adding Post build script to copy realsense2.dll to project's binary folder")
+message(STATUS "Will try to copy from ${DLL_DIR} to ${PROJECT_BINARY_OUTPUT_PATH}")
+add_custom_command(TARGET rs-getting-started POST_BUILD        # Adds a post-build event to rs-getting-started
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different              # which executes "cmake - E copy_if_different..."
+        "${DLL_DIR}/realsense2.dll"                            # <--this is in-file
+        ${PROJECT_BINARY_OUTPUT_PATH})                 # <--this is out-file path
+endif()
 
 install(
     TARGETS

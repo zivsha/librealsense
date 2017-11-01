@@ -38,6 +38,8 @@ The application should open console and print a single line indicating the dista
 1. Copy the `rs-getting-started` folder to your desired location
 2. Open CmakeLists.txt file and update the following variables to the correct path:
    - `LIBRARY_DIR` - Should point to where `realsense2.lib` is located
+   - `DLL_DIR` - Should point to where `realsense2.dll` is located
+   - `PROJECT_BINARY_OUTPUT_PATH` - The path to where the binaries of your project compile (used for post build script of copying the realsense2.dll)
    - `ADDITIONAL_INCLUDE_DIRS` - Should point to the `include` folder that contains the "librealsense2" folder (which holds all library headers)
     > These variables are currently pointing to the default location that the windows installer creates
 3. open terminal in your folder
@@ -46,5 +48,7 @@ The application should open console and print a single line indicating the dista
    - `cd build`
    - `cmake ../`
    - `make -j4`
-5. Copy `realsense2.dll` next to the `rs-getting-started.exe` you have just built.
+5. If the `make` was successful then there should be an executable called `rs-getting-started` in the build folder (or a subfolder of that).
+   Verify that `realsense2.dll` was copied next to the `rs-getting-started` you have just built.
+   If it is not there, the cmake post build failed for some reason, to workaround this - simply manually copy the `realsense2.dll` next to the `rs-getting-started` you have just built.
 6. Run: `./rs-getting-started`
