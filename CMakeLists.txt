@@ -529,6 +529,9 @@ if(HWM_OVER_XU)
     add_definitions(-DHWM_OVER_XU)
 endif()
 
+add_subdirectory(third-party/googletest)
+add_subdirectory(third-party/cctz)
+add_subdirectory(third-party/abseil-cpp)
 add_subdirectory(third-party/realsense-file)
 
 option(BUILD_SHARED_LIBS "Build shared library" ON)
