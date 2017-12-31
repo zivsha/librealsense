@@ -15,17 +15,22 @@ init:
       $startTime = (Get-Date)
 
       echo "Script started on $startTime"
-- cmd: 
+- cmd:
 install:
 - ps: Install-Product node $env:nodejs_version
 - cmd: >-
-    cd c:\projects\librealsense\.. && git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git 
+    cd c:\projects\librealsense\.. && git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
 
     set OLDPATH=%PATH% && set PATH=%PATH%;c:\projects\depot_tools
 
     cd c:\projects\librealsense\wrappers\nodejs\tools && npm install
 
     cd c:\projects\librealsense\wrappers\nodejs && node .\tools\linter.js && set PATH=%OLDPATH% && set OLDPATH=
+
+    cd c:\projects\librealsense\wrappers\python
+    python.exe find_version.py "c:\projects\librealsense"
+    python.exe -m pip install --upgrade pip
+    python.exe -m pip install -r requirements.txt
 before_build:
 - cmd: >-
     cd c:\projects\librealsense && mkdir build && cd build
@@ -94,7 +99,7 @@ test_script:
         $test_failed +=  $element
     }
 
-    foreach ($element in $records) 
+    foreach ($element in $records)
     {
 
         $url_cur = $url_records_path + $element
@@ -125,6 +130,15 @@ test_script:
 #---------------------------------#
 #        global handlers          #
 #---------------------------------#
+after_test:
+- cmd: >-
+    xcopy c:\projects\librealsense\%BUILD_DIR%\bin\Release\*.pyd" c:\projects\librealsense\wrappers\python\pyrealsense2 /I
+    xcopy c:\projects\librealsense\%BUILD_DIR%\bin\Release\*.dll" c:\projects\librealsense\wrappers\python\pyrealsense2 /I
+    cd c:\projects\librealsense\wrappers\python
+    python.exe setup.py bdist_wheel
+
+artifacts:
+  - path: c:\projects\librealsense\wrappers\python\dist\*
 
 # on successful build
 on_success:

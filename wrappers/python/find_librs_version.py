@@ -1,8 +1,17 @@
 import io
 import re
+import sys
+import os
 
 librs_version = ''
-with io.open('librealsense/include/librealsense2/rs.h', 'r') as f:
+if len(sys.argv) < 2:
+    print("Error! Usage: find_librs_version.py <absolute_path_to_librealsense>")
+    exit(1)
+
+librealsense_dir = sys.argv[1]
+rs_h_path = os.path.join(librealsense_dir, 'include/librealsense2/rs.h')
+print("Extracting version from: ", rs_h_path)
+with io.open(rs_h_path, 'r') as f:
     file_content = f.read()
     major = re.search(r"#define\s*RS2_API_MAJOR_VERSION\s*(\d+)",file_content)
     if not major:
@@ -19,7 +28,8 @@ with io.open('librealsense/include/librealsense2/rs.h', 'r') as f:
         raise Exception('No patch number')
     librs_version += patch.group(1)
 
-print("Librealsense Version: ", librs_version)
-
-with open('librealsense/wrappers/python/rs_version.py', 'w') as f:
-    f.write('librs_version = "{}"'.format(librs_version))
+    print("Librealsense Version: ", librs_version)
+    outfile = os.path.join(librealsense_dir, 'wrappers/python/rs_version.py')
+    print("Writing version to: ", outfile)
+    with open(outfile, 'w') as f:
+        f.write('librs_version = "{}"'.format(librs_version))
