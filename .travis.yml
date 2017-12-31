@@ -53,10 +53,7 @@ before_install:
       sudo apt-get install gcc-5 g++-5;
       sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 60 --slave /usr/bin/g++ g++ /usr/bin/g++-5;
 
-      #Prepare python package
-      
       build_path=`pwd`;
-      echo "librealsense folder: $build_path";
       cd $build_path/wrappers/python;
       python find_librs_version.py $build_path;
       python.exe -m pip install --upgrade pip;
