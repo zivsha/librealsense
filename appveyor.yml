@@ -144,7 +144,7 @@ after_test:
     python.exe setup.py bdist_wheel
 
 artifacts:
-  - path: c:\projects\librealsense\wrappers\python\dist\*
+  - path: wrappers\python\dist\*
 
 # on successful build
 on_success:
