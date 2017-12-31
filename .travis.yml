@@ -21,6 +21,9 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
       for i in `pyenv versions|sed 's/ //g'|grep "^2"`; do if [ $i = "2.7" ]; then continue; else pyenv uninstall -f $i; fi; done;
     fi
+
+    build_path=`pwd`
+    echo "librealsense folder: $build_path"
     # Run linter
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
       git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git;
@@ -52,6 +55,13 @@ before_install:
       sudo apt-get install -qq python python-dev;
       sudo apt-get install gcc-5 g++-5;
       sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 60 --slave /usr/bin/g++ g++ /usr/bin/g++-5;
+
+      #Prepare python package
+      cd $build_path/wrappers/python
+      python find_librs_version.py $build_path
+      python.exe -m pip install --upgrade pip
+      python.exe -m pip install -r requirements.txt
+
     fi
 
 install:
@@ -103,6 +113,11 @@ script:
       cmake .. -DBUILD_EXAMPLES:BOOL=true -DBUILD_PYTHON_BINDINGS:BOOL=true -DBUILD_NODEJS_BINDINGS:BOOL=true;
       make -j $CPU_NUM;
       sudo "PATH=$PATH" make install;
+      
+      echo 'Copying pyrealsense2.so'
+      cp ../wrappers/python/*pyrealsense2*.so ../wrappers/python/pyrealsense2/
+      echo 'Building wheel'
+      pip wheel ../wrappers/python -w /io/wheelhouse/
 
       export LRS_LOG_LEVEL="DEBUG";
 

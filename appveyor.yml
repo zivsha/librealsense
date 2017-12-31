@@ -135,9 +135,9 @@ test_script:
 #---------------------------------#
 after_test:
 - cmd: >-
-    xcopy c:\projects\librealsense\%BUILD_DIR%\bin\Release\*.pyd" c:\projects\librealsense\wrappers\python\pyrealsense2 /I
+    xcopy c:\projects\librealsense\build\Debug\pyrealsense2.pyd c:\projects\librealsense\wrappers\python\pyrealsense2 /I
 
-    xcopy c:\projects\librealsense\%BUILD_DIR%\bin\Release\*.dll" c:\projects\librealsense\wrappers\python\pyrealsense2 /I
+    xcopy c:\projects\librealsense\build\Debug\realsense2.dll c:\projects\librealsense\wrappers\python\pyrealsense2 /I
 
     cd c:\projects\librealsense\wrappers\python
 
