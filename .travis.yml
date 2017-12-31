@@ -22,8 +22,6 @@ before_install:
       for i in `pyenv versions|sed 's/ //g'|grep "^2"`; do if [ $i = "2.7" ]; then continue; else pyenv uninstall -f $i; fi; done;
     fi
 
-    build_path=`pwd`
-    echo "librealsense folder: $build_path"
     # Run linter
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
       git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git;
@@ -57,11 +55,14 @@ before_install:
       sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 60 --slave /usr/bin/g++ g++ /usr/bin/g++-5;
 
       #Prepare python package
+      
+      build_path=`pwd`
+      echo "librealsense folder: $build_path"
       cd $build_path/wrappers/python
       python find_librs_version.py $build_path
       python.exe -m pip install --upgrade pip
       python.exe -m pip install -r requirements.txt
-
+      cd $build_path
     fi
 
 install:
