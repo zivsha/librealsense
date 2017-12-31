@@ -21,7 +21,6 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
       for i in `pyenv versions|sed 's/ //g'|grep "^2"`; do if [ $i = "2.7" ]; then continue; else pyenv uninstall -f $i; fi; done;
     fi
-
     # Run linter
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
       git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git;
@@ -56,13 +55,13 @@ before_install:
 
       #Prepare python package
       
-      build_path=`pwd`
-      echo "librealsense folder: $build_path"
-      cd $build_path/wrappers/python
-      python find_librs_version.py $build_path
-      python.exe -m pip install --upgrade pip
-      python.exe -m pip install -r requirements.txt
-      cd $build_path
+      build_path=`pwd`;
+      echo "librealsense folder: $build_path";
+      cd $build_path/wrappers/python;
+      python find_librs_version.py $build_path;
+      python.exe -m pip install --upgrade pip;
+      python.exe -m pip install -r requirements.txt;
+      cd $build_path;
     fi
 
 install:
@@ -115,10 +114,10 @@ script:
       make -j $CPU_NUM;
       sudo "PATH=$PATH" make install;
       
-      echo 'Copying pyrealsense2.so'
-      cp ../wrappers/python/*pyrealsense2*.so ../wrappers/python/pyrealsense2/
-      echo 'Building wheel'
-      pip wheel ../wrappers/python -w /io/wheelhouse/
+      echo 'Copying pyrealsense2.so';
+      cp ../wrappers/python/*pyrealsense2*.so ../wrappers/python/pyrealsense2/;
+      echo 'Building wheel';
+      pip wheel ../wrappers/python -w /io/wheelhouse/;
 
       export LRS_LOG_LEVEL="DEBUG";
 
