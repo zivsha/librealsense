@@ -28,8 +28,11 @@ install:
     cd c:\projects\librealsense\wrappers\nodejs && node .\tools\linter.js && set PATH=%OLDPATH% && set OLDPATH=
 
     cd c:\projects\librealsense\wrappers\python
+
     python.exe find_version.py "c:\projects\librealsense"
+
     python.exe -m pip install --upgrade pip
+
     python.exe -m pip install -r requirements.txt
 before_build:
 - cmd: >-
@@ -133,8 +136,11 @@ test_script:
 after_test:
 - cmd: >-
     xcopy c:\projects\librealsense\%BUILD_DIR%\bin\Release\*.pyd" c:\projects\librealsense\wrappers\python\pyrealsense2 /I
+
     xcopy c:\projects\librealsense\%BUILD_DIR%\bin\Release\*.dll" c:\projects\librealsense\wrappers\python\pyrealsense2 /I
+
     cd c:\projects\librealsense\wrappers\python
+
     python.exe setup.py bdist_wheel
 
 artifacts:
