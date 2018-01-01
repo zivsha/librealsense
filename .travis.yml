@@ -56,8 +56,9 @@ before_install:
       build_path=`pwd`;
       cd $build_path/wrappers/python;
       python find_librs_version.py $build_path;
-      python.exe -m pip install --upgrade pip;
-      python.exe -m pip install -r requirements.txt;
+      sudo apt-get install python-pip;
+      sudo python -m pip install --upgrade pip;
+      sudo python -m pip install -r requirements.txt;
       cd $build_path;
     fi
 
@@ -111,10 +112,10 @@ script:
       make -j $CPU_NUM;
       sudo "PATH=$PATH" make install;
       
-      echo 'Copying pyrealsense2.so';
-      cp ../wrappers/python/*pyrealsense2*.so ../wrappers/python/pyrealsense2/;
-      echo 'Building wheel';
-      pip wheel ../wrappers/python -w /io/wheelhouse/;
+      echo 'Copying pyrealsense2.so'
+      cp wrappers/python/*pyrealsense2*.so* ../wrappers/python/pyrealsense2/
+      echo 'Building wheel'
+      sudo -H pip wheel ../wrappers/python -w /io/wheelhouse/
 
       export LRS_LOG_LEVEL="DEBUG";
 
