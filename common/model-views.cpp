@@ -4079,8 +4079,10 @@ namespace rs2
         }
         return keep_showing;
     }
-    void device_model::draw_advanced_controls(viewer_model& view, ux_window& window)
+    bool device_model::draw_advanced_controls(viewer_model& view, ux_window& window)
     {
+        bool was_set = false;
+
         ImGui::PushStyleColor(ImGuiCol_TextSelectedBg, { 0.9f, 0.9f, 0.9f, 1 });
 
         auto is_advanced_mode = dev.is<advanced_mode>();
@@ -4091,7 +4093,7 @@ namespace rs2
                 auto advanced = dev.as<advanced_mode>();
                 if (advanced.is_enabled())
                 {
-                    draw_advanced_mode_controls(advanced, amc, get_curr_advanced_controls);
+                    draw_advanced_mode_controls(advanced, amc, get_curr_advanced_controls, was_set);
                 }
                 else
                 {
@@ -4121,6 +4123,7 @@ namespace rs2
         }
 
         ImGui::PopStyleColor();
+        return was_set;
     }
 
     void device_model::draw_info_icon(const ImVec2& size)
@@ -5183,7 +5186,13 @@ namespace rs2
                     }
                 }
                 if (dev.is<advanced_mode>() && sub->s->is<depth_sensor>())
-                    draw_advanced_controls(viewer, window);
+                {
+                    if (draw_advanced_controls(viewer, window))
+                    {
+                        sub->options_invalidated = true;
+                    }
+                }
+
 
                 for (auto&& pb : sub->const_effects)
                 {

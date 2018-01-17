@@ -449,7 +449,7 @@ namespace rs2
         void pause_record();
         void resume_record();
         int draw_playback_panel(ImFont* font, viewer_model& view);
-        void draw_advanced_controls(viewer_model& view, ux_window& window);
+        bool draw_advanced_controls(viewer_model& view, ux_window& window);
         void draw_controls(float panel_width, float panel_height,
             ux_window& window,
             std::string& error_message,
