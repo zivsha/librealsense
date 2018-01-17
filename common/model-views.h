@@ -19,6 +19,7 @@
 
 #include "imgui-fonts-karla.hpp"
 #include "imgui-fonts-fontawesome.hpp"
+#include "../third-party/json.hpp"
 
 #include "realsense-ui-advanced-mode.h"
 #ifdef _WIN32
@@ -501,6 +502,8 @@ namespace rs2
             std::vector<std::string>& restarting_device_info, 
             viewer_model& view, 
             ux_window& window);
+        void load_viewer_configurations(const std::string& json_str);
+        void save_viewer_configurations(std::ofstream& outfile, nlohmann::json& j);
 
         std::shared_ptr<recorder> _recorder;
         std::vector<std::shared_ptr<subdevice_model>> live_subdevices;
