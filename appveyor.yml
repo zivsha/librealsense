@@ -6,11 +6,11 @@ branches:
   only:
   - development
 skip_tags: true
-nodejs_version: "6"
 image: Visual Studio 2015
 clone_folder: c:\projects\librealsense
 
 environment:
+  nodejs_version: "6"
   matrix:
   - PYTHON: C:/Python27       #Python 2.7.14 x86 (C:\Python27 - default in PATH)
   - PYTHON: C:/Python27-x64   #Python 2.7.14 x64 (C:\Python27-x64)
