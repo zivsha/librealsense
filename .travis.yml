@@ -57,6 +57,7 @@ before_install:
       cd $build_path/wrappers/python;
       python find_librs_version.py $build_path;
       sudo apt-get install python-pip;
+      sudo apt-get install python-wheel-common
       sudo python -m pip install --upgrade pip;
       sudo python -m pip install -r requirements.txt;
       cd $build_path;
@@ -115,7 +116,7 @@ script:
       echo 'Copying pyrealsense2.so'
       cp wrappers/python/*pyrealsense2*.so* ../wrappers/python/pyrealsense2/
       echo 'Building wheel'
-      sudo -H pip wheel ../wrappers/python -w /io/wheelhouse/
+      sudo -H pip wheel ../wrappers/python -w ../wrappers/python/dist/
 
       export LRS_LOG_LEVEL="DEBUG";
 
