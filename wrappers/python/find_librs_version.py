@@ -29,7 +29,7 @@ with io.open(rs_h_path, 'r') as f:
     librs_version += patch.group(1)
 
     print("Librealsense Version: ", librs_version)
-    outfile = os.path.join(librealsense_dir, 'wrappers/python/rs_version.py')
+    outfile = os.path.join(librealsense_dir, 'wrappers/python/pyrealsense2/_version.py')
     print("Writing version to: ", outfile)
     with open(outfile, 'w') as f:
-        f.write('librs_version = "{}"'.format(librs_version))
+        f.write('__version__ = "{}"'.format(librs_version))
