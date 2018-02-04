@@ -156,7 +156,7 @@ after_test:
 
     xcopy %APPVEYOR_BUILD_FOLDER%\build\Debug\realsense2.dll %APPVEYOR_BUILD_FOLDER%\wrappers\python\pyrealsense2 /I
 
-    xcopy %APPVEYOR_BUILD_FOLDER%\LICENSE" %APPVEYOR_BUILD_FOLDER%\wrappers\python /I
+    xcopy %APPVEYOR_BUILD_FOLDER%\LICENSE %APPVEYOR_BUILD_FOLDER%\wrappers\python /I
 
     cd c:\projects\librealsense\wrappers\python
 
