@@ -6,40 +6,11 @@ language: cpp
 
 sudo: required
 dist: trusty
+osx_image: xcode7
 
-matrix:
-  exclude:
-    - os: osx
-      language: cpp
-    - os: linux
-      language: cpp
-  include:
-    # MacOS , Python 2.7, x64
-    - os: osx
-      osx_image: xcode7
-      python: "2.7"
-
-    # MacOS , Python 3.6, x64
-    - os: osx
-      osx_image: xcode7
-      python: "3.6"
-
-    # Linux , Python 2.7, x64
-    - os: linux
-      python: "2.7"
-
-#    # Linux , Python 2.7, x86
-#    - os: linux
-#      python: "2.7"
-
-    # Linux , Python 3.6, x64
-    - os: linux
-      python: "3.6"
-    
-#    # Linux , Python 3.6, x86
-#    - os: linux
-#      python: "3.6"
-
+python: 
+    - 2.7
+    - 3.6
 
 before_install:
   # Install nodejs via nvm
