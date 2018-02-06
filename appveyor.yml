@@ -74,7 +74,7 @@ before_build:
 - cmd: >-
     cd c:\projects\librealsense && mkdir build && cd build
 
-    cmake -DBUILD_EXAMPLES=true -DBUILD_PYTHON_BINDINGS=true -DPYTHON_EXECUTABLE=%PYTHON%/python.exe -DBUILD_NODEJS_BINDINGS:BOOL=true
+    cmake .. -DCMAKE_CONFIGURATION_TYPE=%CONFIGURATION% -DBUILD_EXAMPLES=true -DBUILD_PYTHON_BINDINGS=true -DPYTHON_EXECUTABLE=%PYTHON%/python.exe -DBUILD_NODEJS_BINDINGS:BOOL=true
 build:
   project: ./build/librealsense2.sln
   parallel: true                           # Is not in use on "Free" plans -  https://github.com/appveyor/ci/issues/216. Leaved for future consideration
