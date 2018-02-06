@@ -70,7 +70,7 @@ before_build:
 - cmd: >-
     cd c:\projects\librealsense && mkdir build && cd build
 
-    cmake .. -G %generator% -DBUILD_EXAMPLES=false -DBUILD_PYTHON_BINDINGS=true -DPYTHON_EXECUTABLE=%PYTHON%/python.exe
+    cmake .. -G "%generator%" -DBUILD_EXAMPLES=false -DBUILD_PYTHON_BINDINGS=true -DPYTHON_EXECUTABLE=%PYTHON%/python.exe
 build:
   project: ./build/librealsense2.sln
   parallel: true                           # Is not in use on "Free" plans -  https://github.com/appveyor/ci/issues/216. Leaved for future consideration
