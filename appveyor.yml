@@ -8,14 +8,24 @@ branches:
 skip_tags: true
 image: Visual Studio 2015
 clone_folder: c:\projects\librealsense
+#configuration: Debug
+#CONFIGURATION : Debug
 
 environment:
   nodejs_version: "6"
   matrix:
   - PYTHON: C:/Python27       #Python 2.7.14 x86 (C:\Python27 - default in PATH)
+    PLATFORM: x86
+    #APPVEYOR_BUILD_WORKER_IMAGE : Visual Studio 2015
+
   - PYTHON: C:/Python27-x64   #Python 2.7.14 x64 (C:\Python27-x64)
+    PLATFORM: x64
+  
   - PYTHON: C:/Python36       #Python 3.6.4 x86 (C:\Python36)
+    PLATFORM: x86
+  
   - PYTHON: C:/Python36-x64   #Python 3.6.4 x64 (C:\Python36-x64)
+    PLATFORM: x64
 
 init:
 - ps:  >-
@@ -152,9 +162,13 @@ test_script:
 #---------------------------------#
 after_test:
 - cmd: >-
-    xcopy %APPVEYOR_BUILD_FOLDER%\build\Debug\pyrealsense2.pyd %APPVEYOR_BUILD_FOLDER%\wrappers\python\pyrealsense2 /I
+    echo "APPVEYOR_BUILD_FOLDER = %APPVEYOR_BUILD_FOLDER%
+    echo "CONFIGURATION = %CONFIGURATION%
+    echo "PYTHON = %PYTHON%
 
-    xcopy %APPVEYOR_BUILD_FOLDER%\build\Debug\realsense2.dll %APPVEYOR_BUILD_FOLDER%\wrappers\python\pyrealsense2 /I
+    xcopy %APPVEYOR_BUILD_FOLDER%\build\%CONFIGURATION%\*.pyd %APPVEYOR_BUILD_FOLDER%\wrappers\python\pyrealsense2 /I
+
+    xcopy %APPVEYOR_BUILD_FOLDER%\build\%CONFIGURATION%\realsense2.dll %APPVEYOR_BUILD_FOLDER%\wrappers\python\pyrealsense2 /I
 
     xcopy %APPVEYOR_BUILD_FOLDER%\LICENSE %APPVEYOR_BUILD_FOLDER%\wrappers\python /I
 
