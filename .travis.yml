@@ -60,6 +60,8 @@ before_install:
       build_path=`pwd`;
       cd $build_path/wrappers/python;
       python find_librs_version.py $build_path;
+      cp $build_path/../LICENSE* $build_path/../wrappers/python/
+
       sudo apt-get install python-pip;
       sudo apt-get install python-wheel-common
       sudo python -m pip install --upgrade pip;
@@ -147,12 +149,12 @@ script:
     fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
       mkdir build && cd build;
-      cmake .. -DBUILD_EXAMPLES:BOOL=true -DBUILD_WITH_OPENMP=false -DHWM_OVER_XU=false;
+      cmake .. -DBUILD_PYTHON_BINDINGS:BOOL=true -DBUILD_WITH_OPENMP=false -DHWM_OVER_XU=false;
       make -j $CPU_NUM;
     fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-      cd ../wrappers/nodejs/test;
-      wget http://realsense-hw-public.s3.amazonaws.com/rs-tests/nodejs_record.rec;
-      mocha test-functional.js --playback nodejs_record.rec;
-      cd ../../..;
-    fi
+#  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+#      cd ../wrappers/nodejs/test;
+#      wget http://realsense-hw-public.s3.amazonaws.com/rs-tests/nodejs_record.rec;
+#      mocha test-functional.js --playback nodejs_record.rec;
+#      cd ../../..;
+#    fi
