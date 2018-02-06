@@ -65,8 +65,8 @@ install:
 #    cd c:\projects\librealsense\wrappers\nodejs\tools && npm install
 #
 #    cd c:\projects\librealsense\wrappers\nodejs && node .\tools\linter.js && set PATH=%OLDPATH% && set OLDPATH=
-#
-#    cd c:\projects\librealsense\wrappers\python
+
+    cd c:\projects\librealsense\wrappers\python
 
     "%PYTHON%/python.exe" find_librs_version.py "c:\projects\librealsense"
 
