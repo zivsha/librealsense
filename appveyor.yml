@@ -32,12 +32,19 @@ environment:
 init:
 - ps:  >-
       $startTime = (Get-Date)
+
       echo "Script started on $startTime"
+
       echo "APPVEYOR_BUILD_FOLDER = %APPVEYOR_BUILD_FOLDER%"
+
       echo "Matrix running: "
+
       echo " - APPVEYOR_BUILD_WORKER_IMAGE = %APPVEYOR_BUILD_WORKER_IMAGE%"
+
       echo " - PLATFORM = %PLATFORM%"
+
       echo " - CONFIGURATION = %CONFIGURATION%"
+
       echo " - PYTHON = %PYTHON%"
 
 - cmd:
