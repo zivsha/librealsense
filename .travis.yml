@@ -137,7 +137,7 @@ script:
       cd ..;
 
       mkdir build && cd build;
-      cmake .. -DBUILD_EXAMPLES:BOOL=true -DBUILD_PYTHON_BINDINGS:BOOL=true -DBUILD_NODEJS_BINDINGS:BOOL=true;
+      cmake .. -DBUILD_PYTHON_BINDINGS:BOOL=true
       make -j $CPU_NUM;
       sudo "PATH=$PATH" make install;
       
@@ -147,13 +147,6 @@ script:
       sudo -H pip wheel ../wrappers/python -w ../wrappers/python/dist/
 
       export LRS_LOG_LEVEL="DEBUG";
-
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! #
-#                                                              #
-#            Commenting out for debugging purposes             #
-#                  Restore prior to merge!!!                   #
-#                                                              #
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! #
 
 #      url_records_path="http://realsense-hw-public.s3.amazonaws.com/rs-tests/lrs_2.8.3/";
 #      records_name="records.txt";
@@ -175,15 +168,15 @@ script:
 #      mkdir build_android && cd build_android;
 #      cmake .. -DCMAKE_TOOLCHAIN_FILE=../android-ndk-r16b/build/cmake/android.toolchain.cmake;
 #      make -j $CPU_NUM;
-#    fi
-#  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-#      mkdir build && cd build;
-#      cmake .. -DBUILD_EXAMPLES:BOOL=true -DBUILD_WITH_OPENMP=false -DHWM_OVER_XU=false;
-#      make -j $CPU_NUM;
-#    fi
-#  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-#      cd ../wrappers/nodejs/test;
-#      wget http://realsense-hw-public.s3.amazonaws.com/rs-tests/nodejs_record.rec;
-#      mocha test-functional.js --playback nodejs_record.rec;
-#      cd ../../..;
-#    fi
+    fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+      mkdir build && cd build;
+      cmake .. -DBUILD_EXAMPLES:BOOL=true -DBUILD_WITH_OPENMP=false -DHWM_OVER_XU=false;
+      make -j $CPU_NUM;
+    fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+      cd ../wrappers/nodejs/test;
+      wget http://realsense-hw-public.s3.amazonaws.com/rs-tests/nodejs_record.rec;
+      mocha test-functional.js --playback nodejs_record.rec;
+      cd ../../..;
+    fi
