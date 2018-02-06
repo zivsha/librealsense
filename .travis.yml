@@ -8,10 +8,6 @@ sudo: required
 dist: trusty
 osx_image: xcode7
 
-python: 
-    - 2.7
-    - 3.6
-
 before_install:
   # Install nodejs via nvm
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
@@ -56,17 +52,6 @@ before_install:
       sudo apt-get install -qq python python-dev;
       sudo apt-get install gcc-5 g++-5;
       sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 60 --slave /usr/bin/g++ g++ /usr/bin/g++-5;
-
-      build_path=`pwd`;
-      cd $build_path/wrappers/python;
-      python find_librs_version.py $build_path;
-      cp $build_path/../LICENSE* $build_path/../wrappers/python/
-
-      sudo apt-get install python-pip;
-      sudo apt-get install python-wheel-common
-      sudo python -m pip install --upgrade pip;
-      sudo python -m pip install -r requirements.txt;
-      cd $build_path;
     fi
 
 install:
@@ -115,46 +100,41 @@ script:
       cd ..;
 
       mkdir build && cd build;
-      cmake .. -DBUILD_PYTHON_BINDINGS:BOOL=true
+      cmake .. -DBUILD_EXAMPLES:BOOL=true -DBUILD_PYTHON_BINDINGS:BOOL=true -DBUILD_NODEJS_BINDINGS:BOOL=true;
       make -j $CPU_NUM;
       sudo "PATH=$PATH" make install;
-      
-      echo 'Copying pyrealsense2.so'
-      cp wrappers/python/*pyrealsense2*.so* ../wrappers/python/pyrealsense2/
-      echo 'Building wheel'
-      sudo -H pip wheel ../wrappers/python -w ../wrappers/python/dist/
 
       export LRS_LOG_LEVEL="DEBUG";
 
-#      url_records_path="http://realsense-hw-public.s3.amazonaws.com/rs-tests/lrs_2.8.3/";
-#      records_name="records.txt";
-#      url_records_list=$url_records_path$records_name;
-#      wget $url_records_path$records_name;
-#      tests_list=`cat $records_name`;
-#
-#      echo "Downloading unit-test records...";
-#      for record in $tests_list; do echo $url_records_path$record; wget $url_records_path$record -P "records/"$(echo $record | cut -d '/' -f 1); done;
-#
-#      ./unit-tests/live-test -d yes -i [software-device];
-#      for i in ./records/single_cam/*; do ./unit-tests/live-test -d yes -i ~[multicam] from "$i"; done;
-#      for i in ./records/multi_cam/*; do ./unit-tests/live-test -d yes -i [multicam] from "$i"; done;
-#
-#      echo "Build RealSense SDK for Android...";
-#      cd ../;
-#      wget https://dl.google.com/android/repository/android-ndk-r16b-linux-x86_64.zip;
-#      unzip android-ndk-r16b-linux-x86_64.zip -d ./;
-#      mkdir build_android && cd build_android;
-#      cmake .. -DCMAKE_TOOLCHAIN_FILE=../android-ndk-r16b/build/cmake/android.toolchain.cmake;
-#      make -j $CPU_NUM;
+      url_records_path="http://realsense-hw-public.s3.amazonaws.com/rs-tests/lrs_2.8.3/";
+      records_name="records.txt";
+      url_records_list=$url_records_path$records_name;
+      wget $url_records_path$records_name;
+      tests_list=`cat $records_name`;
+
+      echo "Downloading unit-test records...";
+      for record in $tests_list; do echo $url_records_path$record; wget $url_records_path$record -P "records/"$(echo $record | cut -d '/' -f 1); done;
+
+      ./unit-tests/live-test -d yes -i [software-device];
+      for i in ./records/single_cam/*; do ./unit-tests/live-test -d yes -i ~[multicam] from "$i"; done;
+      for i in ./records/multi_cam/*; do ./unit-tests/live-test -d yes -i [multicam] from "$i"; done;
+
+      echo "Build RealSense SDK for Android...";
+      cd ../;
+      wget https://dl.google.com/android/repository/android-ndk-r16b-linux-x86_64.zip;
+      unzip android-ndk-r16b-linux-x86_64.zip -d ./;
+      mkdir build_android && cd build_android;
+      cmake .. -DCMAKE_TOOLCHAIN_FILE=../android-ndk-r16b/build/cmake/android.toolchain.cmake;
+      make -j $CPU_NUM;
     fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
       mkdir build && cd build;
-      cmake .. -DBUILD_PYTHON_BINDINGS:BOOL=true -DBUILD_WITH_OPENMP=false -DHWM_OVER_XU=false;
+      cmake .. -DBUILD_EXAMPLES:BOOL=true -DBUILD_WITH_OPENMP=false -DHWM_OVER_XU=false;
       make -j $CPU_NUM;
     fi
-#  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-#      cd ../wrappers/nodejs/test;
-#      wget http://realsense-hw-public.s3.amazonaws.com/rs-tests/nodejs_record.rec;
-#      mocha test-functional.js --playback nodejs_record.rec;
-#      cd ../../..;
-#    fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+      cd ../wrappers/nodejs/test;
+      wget http://realsense-hw-public.s3.amazonaws.com/rs-tests/nodejs_record.rec;
+      mocha test-functional.js --playback nodejs_record.rec;
+      cd ../../..;
+    fi
