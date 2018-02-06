@@ -53,6 +53,19 @@ init:
 install:
 - ps: Install-Product node $env:nodejs_version
 - cmd: >-
+
+    echo "APPVEYOR_BUILD_FOLDER = %APPVEYOR_BUILD_FOLDER%"
+
+    echo "Matrix running: "
+
+    echo " - APPVEYOR_BUILD_WORKER_IMAGE = %APPVEYOR_BUILD_WORKER_IMAGE%"
+
+    echo " - PLATFORM = %PLATFORM%"
+
+    echo " - CONFIGURATION = %CONFIGURATION%"
+
+    echo " - PYTHON = %PYTHON%"
+
     cd c:\projects\librealsense\.. && git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
 
     set OLDPATH=%PATH% && set PATH=%PATH%;c:\projects\depot_tools
