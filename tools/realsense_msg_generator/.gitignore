@@ -1,0 +1,14 @@
+#Visual Studio Project
+.vs/*
+
+#Clion Project
+.idea/*
+
+#QTCreator Project
+/.qmake.cache
+/.qmake.stash
+
+*-build-*
+
+#build output
+output/
