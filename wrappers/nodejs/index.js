@@ -1218,6 +1218,7 @@ class Context {
     const funcName = 'Context.loadDevice()';
     checkArgumentLength(1, 1, arguments.length, funcName);
     checkArgumentType(arguments, 'string', 0, funcName);
+    checkFileExistence(file);
     return new PlaybackDevice(this.cxxCtx.loadDeviceFile(file), file);
   }
 
@@ -1230,6 +1231,7 @@ class Context {
     const funcName = 'Context.unloadDevice()';
     checkArgumentLength(1, 1, arguments.length, funcName);
     checkArgumentType(arguments, 'string', 0, funcName);
+    checkFileExistence(file);
     this.cxxCtx.unloadDeviceFile(file);
   }
 }
@@ -1274,6 +1276,7 @@ class PlaybackContext extends Context {
     checkArgumentLength(1, 2, arguments.length, funcName);
     checkArgumentType(arguments, 'string', 0, funcName);
     checkArgumentType(arguments, 'string', 1, funcName);
+    checkFileExistence(fileName);
     super('playback', fileName, section);
   }
 }
@@ -1616,7 +1619,9 @@ class Colorizer extends Options {
   colorize(depthFrame) {
     const funcName = 'Colorizer.colorize()';
     checkArgumentLength(1, 1, arguments.length, funcName);
-    checkArgumentType(arguments, DepthFrame, 0, funcName);
+    // Though depth frame is expected, color frame could also be processed, so
+    // only check whether the type is Frame
+    checkArgumentType(arguments, Frame, 0, funcName);
     const success = this.cxxColorizer.colorize(depthFrame.cxxFrame, this.depthRGB.cxxFrame);
     this.depthRGB.updateProfile();
     return success ? this.depthRGB : undefined;
@@ -2691,13 +2696,14 @@ class Config {
    * This request cannot be used if {@link Config.enableRecordToFile} is called for the current
    * config, and vise versa
    *
-   * @param {String} filename the playback file of the device
+   * @param {String} fileName the playback file of the device
    */
-  enableDeviceFromFile(filename) {
+  enableDeviceFromFile(fileName) {
     const funcName = 'Config.enableDeviceFromFile()';
     checkArgumentLength(1, 1, arguments.length, funcName);
     checkArgumentType(arguments, 'string', 0, funcName);
-    this.cxxConfig.enableDeviceFromFile(filename);
+    checkFileExistence(fileName);
+    this.cxxConfig.enableDeviceFromFile(fileName);
   }
 
   /**
@@ -2705,13 +2711,13 @@ class Config {
    * This request cannot be used if {@link Config.enableDeviceFromFile} is called for the current
    * config, and vise versa as available.
    *
-   * @param {String} filename the desired file for the output record
+   * @param {String} fileName the desired file for the output record
    */
-  enableRecordToFile(filename) {
+  enableRecordToFile(fileName) {
     const funcName = 'Config.enableRecordToFile()';
     checkArgumentLength(1, 1, arguments.length, funcName);
     checkArgumentType(arguments, 'string', 0, funcName);
-    this.cxxConfig.enableRecordToFile(filename);
+    this.cxxConfig.enableRecordToFile(fileName);
   }
 
   /**
@@ -4769,6 +4775,16 @@ const frame_metadata = {
    * <br>Equivalent to its uppercase counterpart
    */
   frame_metadata_temperature: 'temperature',
+   /**
+   * Timestamp get from uvc driver. usec
+   * <br>Equivalent to its uppercase counterpart
+   */
+  frame_metadata_backend_timestamp: 'backend-timestamp',
+    /**
+  * Actual fps
+  * <br>Equivalent to its uppercase counterpart
+  */
+  frame_metadata_actual_fps: 'actual-fps',
   /**
    * A sequential index managed per-stream. Integer value <br>Equivalent to its lowercase
    * counterpart.
@@ -4824,6 +4840,18 @@ const frame_metadata = {
    */
   FRAME_METADATA_TEMPERATURE: RS2.RS2_FRAME_METADATA_TEMPERATURE,
   /**
+  * Timestamp get from uvc driver. usec
+  * <br>Equivalent to its lowercase counterpart
+  * @type {Integer}
+  */
+  FRAME_METADATA_BACKEND_TIMESTAMP: RS2.RS2_FRAME_METADATA_BACKEND_TIMESTAMP,
+  /**
+  * Actual fps
+  * <br>Equivalent to its lowercase counterpart
+  * @type {Integer}
+  */
+  FRAME_METADATA_ACTUAL_FPS: RS2.RS2_FRAME_METADATA_ACTUAL_FPS,
+  /**
    * Number of enumeration values. Not a valid input: intended to be used in for-loops.
    * @type {Integer}
    */
@@ -4857,6 +4885,10 @@ const frame_metadata = {
         return this.frame_metadata_time_of_arrival;
       case this.FRAME_METADATA_TEMPERATURE:
         return this.frame_metadata_temperature;
+      case this.FRAME_METADATA_BACKEND_TIMESTAMP:
+        return this.frame_metadata_backend_timestamp;
+      case this.FRAME_METADATA_ACTUAL_FPS:
+        return this.frame_metadata_actual_fps;
     }
   },
 };
