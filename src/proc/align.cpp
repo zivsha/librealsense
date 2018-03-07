@@ -9,6 +9,7 @@
 #include "proc/synthetic-stream.h"
 #include "environment.h"
 #include "align.h"
+#include "stream.h"
 
 namespace librealsense
 {
@@ -76,7 +77,7 @@ namespace librealsense
 
     template<int N> struct bytes { char b[N]; };
 
-    template<int N, class GET_DEPTH> 
+    template<int N, class GET_DEPTH>
     void align_other_to_depth_bytes(byte* other_aligned_to_depth, GET_DEPTH get_depth, const rs2_intrinsics& depth_intrin, const rs2_extrinsics& depth_to_other, const rs2_intrinsics& other_intrin, const byte* other_pixels)
     {
         auto in_other = (const bytes<N> *)(other_pixels);
@@ -85,7 +86,7 @@ namespace librealsense
             [out_other, in_other](int depth_pixel_index, int other_pixel_index) { out_other[depth_pixel_index] = in_other[other_pixel_index]; });
     }
 
-    template<class GET_DEPTH> 
+    template<class GET_DEPTH>
     void align_other_to_depth(byte* other_aligned_to_depth, GET_DEPTH get_depth, const rs2_intrinsics& depth_intrin, const rs2_extrinsics & depth_to_other, const rs2_intrinsics& other_intrin, const byte* other_pixels, rs2_format other_format)
     {
         switch (other_format)
@@ -114,7 +115,58 @@ namespace librealsense
     {
         align_other_to_depth(other_aligned_to_z, [z_pixels, z_scale](int z_pixel_index) { return z_scale * z_pixels[z_pixel_index]; }, z_intrin, z_to_other, other_intrin, other_pixels, other_format);
     }
-
+    
+    int align::get_unique_id(const std::shared_ptr<stream_profile_interface>& original_profile,
+        const std::shared_ptr<stream_profile_interface>& to_profile,
+        const std::shared_ptr<stream_profile_interface>& aligned_profile)
+    {
+        //align_stream_unique_ids holds a cache of mapping between the 2 streams that created the new aligned stream
+        // to it stream id. 
+        //When an aligned frame is created from other streams (but with the same instance of this class)
+        // the from_to pair will be different so a new id will be added to the cache.
+        //This allows the user to pass different streams to this class and for every pair of from_to
+        //the user will always get the same stream id for the aligned stream.
+        auto from_to = std::make_pair(original_profile->get_unique_id(), to_profile->get_unique_id());
+        auto it = align_stream_unique_ids.find(from_to);
+        if (it != align_stream_unique_ids.end())
+        {
+            return it->second;
+        }
+        else
+        {
+            int new_id = aligned_profile->get_unique_id();
+            align_stream_unique_ids[from_to] = new_id;
+            return new_id;
+        }
+    }
+    std::shared_ptr<stream_profile_interface> align::create_aligned_profile(
+        const std::shared_ptr<stream_profile_interface>& original_profile, 
+        const std::shared_ptr<stream_profile_interface>& to_profile)
+    {
+        auto aligned_profile = original_profile->clone();
+        int aligned_unique_id = get_unique_id(original_profile, to_profile, aligned_profile);
+        aligned_profile->set_unique_id(aligned_unique_id);
+        environment::get_instance().get_extrinsics_graph().register_same_extrinsics(*aligned_profile, *original_profile);
+        aligned_profile->set_stream_index(original_profile->get_stream_index());
+        aligned_profile->set_stream_type(original_profile->get_stream_type());
+        aligned_profile->set_format(original_profile->get_format());
+        aligned_profile->set_framerate(original_profile->get_framerate());
+        if (auto original_video_profile = As<video_stream_profile_interface>(original_profile))
+        {
+            if (auto to_video_profile = As<video_stream_profile_interface>(to_profile))
+            {
+                if (auto aligned_video_profile = As<video_stream_profile_interface>(aligned_profile))
+                {
+                    aligned_video_profile->set_dims(to_video_profile->get_width(), to_video_profile->get_height());
+                    auto aligned_intrinsics = original_video_profile->get_intrinsics();
+                    aligned_intrinsics.width = to_video_profile->get_width();
+                    aligned_intrinsics.height = to_video_profile->get_height();
+                    aligned_video_profile->set_intrinsics([aligned_intrinsics]() { return aligned_intrinsics; });
+                }
+            }
+        }
+        return aligned_profile;
+    }
     void align::on_frame(frame_holder frameset, librealsense::synthetic_source_interface* source)
     {
         auto composite = As<composite_frame>(frameset.frame);
@@ -151,7 +203,7 @@ namespace librealsense
                 auto other_video_frame = As<librealsense::video_frame>(f);
                 auto other_stream_profile = f->get_stream();
                 assert(other_stream_profile != nullptr);
-                
+
                 if (other_video_frame == nullptr)
                 {
                     LOG_ERROR("Given frame of type " << other_stream_profile->get_stream_type() << ", is not a librealsense::video_frame, ignoring it");
@@ -174,7 +226,7 @@ namespace librealsense
                 }
             }
         }
-        
+
         if (depth_frame == nullptr)
         {
             LOG_WARNING("No depth frame provided to align");
@@ -202,7 +254,7 @@ namespace librealsense
             depth_frame->acquire();
             output_frames.push_back(depth_frame);
         }
-        
+
         for (librealsense::video_frame* other_frame : other_frames)
         {
             auto other_profile = As<video_stream_profile_interface>(other_frame->get_stream());
@@ -240,11 +292,13 @@ namespace librealsense
             {
                 //Align a stream to depth
                 auto aligned_bytes_per_pixel = other_frame->get_bpp() / 8;
-                aligned_frame = source->allocate_video_frame(other_profile,
+                auto aligned_profile = create_aligned_profile(other_profile, depth_profile);
+                aligned_frame = source->allocate_video_frame(
+                    aligned_profile,
                     other_frame,
                     aligned_bytes_per_pixel,
-                    depth_frame->get_width(), 
-                    depth_frame->get_height(), 
+                    depth_frame->get_width(),
+                    depth_frame->get_height(),
                     depth_frame->get_width() * aligned_bytes_per_pixel,
                     RS2_EXTENSION_VIDEO_FRAME);
 
@@ -258,18 +312,19 @@ namespace librealsense
                 memset(other_aligned_to_depth, 0, depth_intrinsics.height * depth_intrinsics.width * aligned_bytes_per_pixel);
                 align_other_to_z(other_aligned_to_depth,
                     reinterpret_cast<const uint16_t*>(depth_frame->get_frame_data()),
-                    depth_scale, depth_intrinsics, 
-                    depth_to_other_extrinsics, 
-                    other_intrinsics, 
-                    other_frame->get_frame_data(), 
+                    depth_scale, depth_intrinsics,
+                    depth_to_other_extrinsics,
+                    other_intrinsics,
+                    other_frame->get_frame_data(),
                     other_profile->get_format());
             }
             else
             {
                 //Align depth to some stream
                 auto aligned_bytes_per_pixel = depth_frame->get_bpp() / 8;
+                auto aligned_profile = create_aligned_profile(depth_profile, other_profile);
                 aligned_frame = source->allocate_video_frame(
-                    depth_profile, 
+                    aligned_profile,
                     depth_frame, 
                     aligned_bytes_per_pixel,
                     other_intrinsics.width,
@@ -284,9 +339,9 @@ namespace librealsense
                 }
                 byte* z_aligned_to_other = const_cast<byte*>(aligned_frame.frame->get_frame_data());
                 memset(z_aligned_to_other, 0, other_intrinsics.height * other_intrinsics.width * aligned_bytes_per_pixel);
-                align_z_to_other(z_aligned_to_other, 
-                    reinterpret_cast<const uint16_t*>(depth_frame->get_frame_data()), 
-                    depth_scale, 
+                align_z_to_other(z_aligned_to_other,
+                    reinterpret_cast<const uint16_t*>(depth_frame->get_frame_data()),
+                    depth_scale,
                     depth_intrinsics,
                     depth_to_other_extrinsics,
                     other_intrinsics);
