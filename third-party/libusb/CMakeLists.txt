@@ -66,8 +66,16 @@ if(APPLE)
   TARGET_LINK_LIBRARIES(usb objc ${corefoundation_lib} ${iokit_lib})
 endif()
 
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
+find_package(UDev REQUIRED)
+if(NOT UDEV_FOUND)
+    message(FATAL_ERROR "udev library not found")
+endif()
+include_directories(${UDEV_INCLUDE_DIR})
+
+
 if((NOT APPLE) AND (NOT ANDROID) AND (NOT WIN32))
-  TARGET_LINK_LIBRARIES(usb udev)
+  TARGET_LINK_LIBRARIES(usb  ${UDEV_LIBRARIES})
 endif()
 
 install(TARGETS ${PROJECT_NAME}
